@@ -5,7 +5,7 @@ import { TopicSelector } from './TopicSelector';
 import { PracticeSession } from './PracticeSession';
 
 export type DebateFormat = 'WSDC' | 'PF';
-export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'MG' | 'MO' | 'GW' | 'OW';
+export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'GW' | 'OW' | 'GR' | 'OR' | 'MG' | 'MO';
 export type Skill = 'rebuttal' | 'argumentation' | 'weighing' | 'modeling' | 'case-building' | 'POI' | 'summary';
 
 interface PracticeConfig {
@@ -22,10 +22,14 @@ export const AIPractice = () => {
 
   const speakers = {
     WSDC: [
-      { id: 'PM' as Speaker, label: 'Prime Minister', description: 'Opening Government' },
-      { id: 'LO' as Speaker, label: 'Leader of Opposition', description: 'Opening Opposition' },
-      { id: 'DPM' as Speaker, label: 'Deputy Prime Minister', description: 'Closing Government' },
-      { id: 'DLO' as Speaker, label: 'Deputy Leader of Opposition', description: 'Closing Opposition' },
+      { id: 'PM' as Speaker, label: 'Prime Minister', description: 'Opening Government (1st)' },
+      { id: 'LO' as Speaker, label: 'Leader of Opposition', description: 'Opening Opposition (1st)' },
+      { id: 'DPM' as Speaker, label: 'Deputy Prime Minister', description: 'Opening Government (2nd)' },
+      { id: 'DLO' as Speaker, label: 'Deputy Leader of Opposition', description: 'Opening Opposition (2nd)' },
+      { id: 'GW' as Speaker, label: 'Government Whip', description: 'Closing Government (1st)' },
+      { id: 'OW' as Speaker, label: 'Opposition Whip', description: 'Closing Opposition (1st)' },
+      { id: 'GR' as Speaker, label: 'Government Reply', description: 'Closing Government (2nd)' },
+      { id: 'OR' as Speaker, label: 'Opposition Reply', description: 'Closing Opposition (2nd)' },
     ],
     PF: [
       { id: 'MG' as Speaker, label: 'Member Government', description: 'First Pro Speaker' },
@@ -105,7 +109,7 @@ export const AIPractice = () => {
                 </h3>
                 <p className="text-muted-foreground text-sm">
                   {format === 'WSDC'
-                    ? 'British Parliamentary style with 4 speakers per side'
+                    ? 'British Parliamentary style with 8 speakers total'
                     : 'American style with 2 speakers per side'}
                 </p>
               </button>
