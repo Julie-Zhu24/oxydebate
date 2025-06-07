@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
-import { Bot, Clock, Users, Target, ArrowRight, Shuffle, Edit } from 'lucide-react';
+import { Bot, Clock, Users, Target, ArrowRight, Shuffle, Edit, History } from 'lucide-react';
 import { TopicSelector } from './TopicSelector';
 import { PracticeSession } from './PracticeSession';
+import { PracticeHistory } from './PracticeHistory';
 
 export type DebateFormat = 'WSDC' | 'PF';
 export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'GW' | 'OW' | 'GR' | 'OR' | 'MG' | 'MO';
@@ -17,7 +18,7 @@ interface PracticeConfig {
 }
 
 export const AIPractice = () => {
-  const [currentStep, setCurrentStep] = useState<'config' | 'topic' | 'practice'>('config');
+  const [currentStep, setCurrentStep] = useState<'config' | 'topic' | 'practice' | 'history'>('config');
   const [config, setConfig] = useState<Partial<PracticeConfig>>({});
 
   const speakers = {
@@ -54,6 +55,14 @@ export const AIPractice = () => {
     setCurrentStep('practice');
   };
 
+  if (currentStep === 'history') {
+    return (
+      <PracticeHistory
+        onBack={() => setCurrentStep('config')}
+      />
+    );
+  }
+
   if (currentStep === 'topic') {
     return (
       <TopicSelector
@@ -84,6 +93,13 @@ export const AIPractice = () => {
         <p className="text-muted-foreground text-lg">
           Practice with our advanced AI coach and improve your debate skills
         </p>
+        <button
+          onClick={() => setCurrentStep('history')}
+          className="flex items-center space-x-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          <History size={18} />
+          <span>My Practice History</span>
+        </button>
       </div>
 
       <div className="grid gap-8">
