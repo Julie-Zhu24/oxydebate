@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Play, Pause, RotateCcw, Clock, Bot, Square, MessageSquare, Save, X, History } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Play, Pause, RotateCcw, Clock, Bot, Square, MessageSquare, Save, X, History, Mic, MicOff } from 'lucide-react';
 import { DebateFormat, Speaker, Skill } from './AIPractice';
 
 interface PracticeConfig {
@@ -26,6 +25,10 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
   const [feedback, setFeedback] = useState('');
   const [transcript, setTranscript] = useState('');
   const [showSaveOptions, setShowSaveOptions] = useState(false);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [isListening, setIsListening] = useState(false);
+
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     // Set debate context immediately for non-PM speakers
@@ -36,6 +39,51 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
       }
     }
   }, [config.speaker]);
+
+  useEffect(() => {
+    // Initialize Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (finalTranscript) {
+          setTranscript(prev => prev + finalTranscript);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      setRecognition(recognition);
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -108,17 +156,6 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     return contexts[config.speaker] || [];
   };
 
-  const generateTranscript = () => {
-    // Simulate speech-to-text conversion
-    const sampleTranscripts = {
-      rebuttal: "Thank you. I'll begin by addressing the key arguments from the previous speaker. First, on the claim that regulation stifles innovation - this fundamentally misunderstands how regulatory frameworks actually work. We see in countries like Germany and France that smart regulation actually encourages innovation by creating clear guidelines. Second, the opposition argues about free speech concerns, but they fail to recognize that unregulated platforms actually silence marginalized voices through algorithmic bias and harassment. Third, regarding implementation challenges...",
-      argumentation: "Honorable judges, I stand before you today to argue that social media regulation is not just beneficial, but absolutely necessary for our democratic society. My first argument centers on the protection of vulnerable users. Studies show that unregulated platforms contribute to rising rates of cyberbullying and mental health issues, particularly among teenagers. My second argument focuses on democratic integrity - misinformation campaigns on unregulated platforms have undermined election processes globally...",
-      weighing: "Looking at this debate, we need to focus on what matters most. Both sides agree there are problems with current social media use. The key question is: which approach better serves society? The government's regulation approach provides immediate protection for millions of users, while the opposition's free-market solution offers only theoretical future benefits. When we weigh magnitude - government regulation affects all users positively, while opposition concerns affect only a small subset of content creators...",
-    };
-
-    return sampleTranscripts[config.skill] || "Thank you for this opportunity to speak. I will address the key points raised in this debate and present my arguments clearly and logically...";
-  };
-
   const generateDetailedFeedback = () => {
     const timeUsed = config.timeLimit * 60 - timeLeft;
     const timePercentage = (timeUsed / (config.timeLimit * 60)) * 100;
@@ -127,24 +164,28 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
       rebuttal: {
         strengths: "You demonstrated strong analytical skills by systematically addressing opposing arguments. Your use of 'even if' frameworks showed sophisticated defensive strategy.",
         improvements: "Consider spending more time on impact comparison - showing why your rebuttals matter more than their original arguments. Try to allocate roughly 30 seconds per major rebuttal point.",
-        specific: "Your rebuttal on innovation was particularly effective because you provided concrete counter-examples. Next time, try to anticipate their likely responses to your rebuttals."
+        specific: "Your rebuttal on innovation was particularly effective because you provided concrete counter-examples. Next time, try to anticipate their likely responses to your rebuttals.",
+        score: 7.5
       },
       argumentation: {
         strengths: "Your argument structure was clear with distinct claim-warrant-impact chains. Good use of evidence and examples to support your points.",
         improvements: "Work on making your impact links more explicit - explain clearly how your arguments lead to the consequences you claim. Consider using more comparative language.",
-        specific: "Your first argument about user protection was well-developed, but you could strengthen it by quantifying the scale of the problem you're solving."
+        specific: "Your first argument about user protection was well-developed, but you could strengthen it by quantifying the scale of the problem you're solving.",
+        score: 8.0
       },
       weighing: {
         strengths: "Excellent comparative analysis using magnitude, probability, and timeframe. You clearly established why your impacts matter more.",
         improvements: "Try to engage more directly with their specific impact claims rather than just presenting your own framework. Address why their weighing mechanism is flawed.",
-        specific: "Your weighing on magnitude was convincing, but you could have been more explicit about probability - why are your impacts more likely to occur?"
+        specific: "Your weighing on magnitude was convincing, but you could have been more explicit about probability - why are your impacts more likely to occur?",
+        score: 7.8
       }
     };
 
     const currentSkill = skillFeedback[config.skill] || {
       strengths: "Good overall structure and delivery.",
       improvements: "Focus on clearer signposting and stronger conclusion.",
-      specific: "Continue practicing to improve your confidence and flow."
+      specific: "Continue practicing to improve your confidence and flow.",
+      score: 7.0
     };
 
     const timingFeedback = timePercentage > 95 ? "Excellent time management - you used almost all available time effectively." :
@@ -152,31 +193,44 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
                           timePercentage > 50 ? "You finished early - try to use more of your allocated time to strengthen your arguments." :
                           "You finished very early - work on developing your arguments more fully and using your full time allocation.";
 
-    return `**Strengths:** ${currentSkill.strengths}
-
-**Areas for Improvement:** ${currentSkill.improvements}
-
-**Specific to Your Speech:** ${currentSkill.specific}
-
-**Time Management:** ${timingFeedback} (Used ${formatTime(timeUsed)} of ${formatTime(config.timeLimit * 60)})
-
-**Overall Assessment:** You're developing strong ${config.skill} skills. Focus on the improvements above and continue practicing regularly to see significant progress.`;
+    return {
+      score: currentSkill.score,
+      strengths: currentSkill.strengths,
+      improvements: currentSkill.improvements,
+      specific: currentSkill.specific,
+      timing: timingFeedback,
+      timeUsed: formatTime(timeUsed),
+      totalTime: formatTime(config.timeLimit * 60)
+    };
   };
 
   const startSession = () => {
     setSessionStarted(true);
     setIsRunning(true);
     setIsRecording(true);
+    setTranscript('');
+    
+    if (recognition) {
+      recognition.start();
+    }
   };
 
   const endSpeechEarly = () => {
     setIsRunning(false);
     setIsRecording(false);
+    if (recognition) {
+      recognition.stop();
+    }
     handleSessionEnd();
   };
 
   const pauseSession = () => {
     setIsRunning(!isRunning);
+    if (!isRunning && recognition) {
+      recognition.start();
+    } else if (isRunning && recognition) {
+      recognition.stop();
+    }
   };
 
   const resetSession = () => {
@@ -188,16 +242,22 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     setFeedback('');
     setTranscript('');
     setShowSaveOptions(false);
+    
+    if (recognition) {
+      recognition.stop();
+    }
   };
 
   const handleSessionEnd = () => {
     setIsRecording(false);
     setSessionEnded(true);
     
-    // Generate transcript and feedback
-    const generatedTranscript = generateTranscript();
+    if (recognition) {
+      recognition.stop();
+    }
+    
+    // Generate feedback
     const generatedFeedback = generateDetailedFeedback();
-    setTranscript(generatedTranscript);
     setFeedback(generatedFeedback);
     setShowSaveOptions(true);
   };
@@ -223,7 +283,6 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     localStorage.setItem('practiceHistory', JSON.stringify(existingHistory));
     
     setShowSaveOptions(false);
-    // Show success message or redirect
   };
 
   const dismissPractice = () => {
@@ -340,10 +399,11 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
           </div>
 
           {sessionStarted && !sessionEnded && (
-            <div className="flex items-center justify-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`}></div>
+            <div className="flex items-center justify-center space-x-3">
+              <div className={`w-3 h-3 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`}></div>
+              {isListening ? <Mic className="text-red-500" size={16} /> : <MicOff className="text-gray-400" size={16} />}
               <span className="text-sm text-muted-foreground">
-                {isRecording ? 'Recording...' : 'Paused'}
+                {isListening ? 'Listening...' : 'Not listening'}
               </span>
             </div>
           )}
@@ -358,22 +418,71 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
             <span>Your Speech Transcript</span>
           </h3>
           <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-4 max-h-40 overflow-y-auto">
-            {transcript}
+            {transcript || "No speech detected. Please check your microphone permissions."}
           </div>
         </div>
       )}
 
       {/* AI Feedback */}
       {feedback && sessionEnded && (
-        <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
-          <div className="flex items-start space-x-3">
-            <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
-              <Bot className="text-white" size={20} />
+        <div className="bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20 rounded-xl p-8">
+          <div className="flex items-start space-x-4">
+            <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center flex-shrink-0">
+              <Bot className="text-white" size={24} />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold mb-4">AI Coach Feedback</h3>
-              <div className="text-sm text-muted-foreground whitespace-pre-line">
-                {feedback}
+            <div className="flex-1 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-accent">AI Coach Analysis</h3>
+                <div className="flex items-center space-x-2 bg-accent/10 rounded-lg px-4 py-2">
+                  <span className="text-sm font-medium text-accent">Overall Score:</span>
+                  <span className="text-2xl font-bold text-accent">{feedback.score}/10</span>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-5">
+                  <h4 className="font-semibold text-green-800 mb-3 flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span>Strengths</span>
+                  </h4>
+                  <p className="text-sm text-green-700 leading-relaxed">{feedback.strengths}</p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Areas for Improvement</span>
+                  </h4>
+                  <p className="text-sm text-blue-700 leading-relaxed">{feedback.improvements}</p>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-5">
+                <h4 className="font-semibold text-purple-800 mb-3 flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span>Specific to Your {config.skill} Skills</span>
+                </h4>
+                <p className="text-sm text-purple-700 leading-relaxed">{feedback.specific}</p>
+              </div>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-5">
+                <h4 className="font-semibold text-orange-800 mb-3 flex items-center space-x-2">
+                  <Clock size={16} />
+                  <span>Time Management</span>
+                </h4>
+                <p className="text-sm text-orange-700 mb-2">{feedback.timing}</p>
+                <div className="flex items-center space-x-4 text-xs text-orange-600">
+                  <span>Time Used: <strong>{feedback.timeUsed}</strong></span>
+                  <span>Total Time: <strong>{feedback.totalTime}</strong></span>
+                </div>
+              </div>
+
+              <div className="bg-accent/5 border border-accent/20 rounded-lg p-5">
+                <h4 className="font-semibold text-accent mb-3">Next Steps</h4>
+                <p className="text-sm text-muted-foreground">
+                  Keep practicing your {config.skill} skills with these insights in mind. Focus on the improvement areas 
+                  and continue building on your strengths. Regular practice will help you develop into a stronger debater.
+                </p>
               </div>
             </div>
           </div>
