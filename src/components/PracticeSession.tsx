@@ -15,6 +15,16 @@ interface PracticeSessionProps {
   onBack: () => void;
 }
 
+interface FeedbackData {
+  score: number;
+  strengths: string;
+  improvements: string;
+  specific: string;
+  timing: string;
+  timeUsed: string;
+  totalTime: string;
+}
+
 export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
   const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -22,7 +32,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [debateContext, setDebateContext] = useState('');
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [transcript, setTranscript] = useState('');
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
@@ -43,8 +53,8 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
   useEffect(() => {
     // Initialize Web Speech API
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionClass();
       
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -54,7 +64,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
         setIsListening(true);
       };
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
@@ -66,7 +76,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
         }
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
       };
 
@@ -156,7 +166,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     return contexts[config.speaker] || [];
   };
 
-  const generateDetailedFeedback = () => {
+  const generateDetailedFeedback = (): FeedbackData => {
     const timeUsed = config.timeLimit * 60 - timeLeft;
     const timePercentage = (timeUsed / (config.timeLimit * 60)) * 100;
 
@@ -239,7 +249,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     setIsRecording(false);
     setSessionStarted(false);
     setSessionEnded(false);
-    setFeedback('');
+    setFeedback(null);
     setTranscript('');
     setShowSaveOptions(false);
     
