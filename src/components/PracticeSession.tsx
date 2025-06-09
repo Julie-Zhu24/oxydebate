@@ -42,7 +42,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
 
   useEffect(() => {
     // Set debate context immediately for non-PM speakers
-    if (config.speaker !== 'PM' && config.speaker !== 'MG') {
+    if (config.speaker !== 'PM' && config.speaker !== 'constructive') {
       const context = getDebateContext();
       if (Array.isArray(context) && context.length > 0) {
         setDebateContext(context.join('\n'));
@@ -156,10 +156,20 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
         '• Both sides agreed on problem, disagreed on solutions',
         '• GR emphasized democratic accountability in tech'
       ],
-      MG: '',
-      MO: [
-        '• MG argued economic benefits outweigh costs',
-        '• MG established clear implementation framework'
+      constructive: '',
+      rebuttal: [
+        '• Pro team argued economic benefits outweigh costs',
+        '• Pro team established clear implementation framework'
+      ],
+      summary: [
+        '• Pro argued economic benefits and clear framework',
+        '• Con emphasized fundamental rights violations',
+        '• Both teams clashed on implementation feasibility'
+      ],
+      'final-focus': [
+        '• Pro focused on economic necessity and democratic protection',
+        '• Con emphasized constitutional concerns and practical issues',
+        '• Summary speeches crystallized core value conflicts'
       ]
     };
 
