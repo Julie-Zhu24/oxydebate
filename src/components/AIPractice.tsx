@@ -9,7 +9,7 @@ export type DebateFormat = 'WSDC' | 'PF';
 export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'GW' | 'OW' | 'GR' | 'OR' | 'MG' | 'MO';
 export type Skill = 'rebuttal' | 'argumentation' | 'weighing' | 'modeling' | 'case-building' | 'POI' | 'summary';
 
-interface PracticeConfig {
+export interface PracticeConfig {
   format: DebateFormat;
   topic: string;
   speaker: Speaker;
