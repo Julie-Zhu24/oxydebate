@@ -6,6 +6,7 @@ import { GlobalPractice } from './GlobalPractice';
 import { Rankings } from './Rankings';
 import { Content } from './Content';
 import { AuthModal } from './AuthModal';
+import { DynamicBackground } from './DynamicBackground';
 
 export type Section = 'ai-practice' | 'global-practice' | 'rankings' | 'content';
 
@@ -30,8 +31,9 @@ export const Layout = () => {
   const renderSection = () => {
     if (!isAuthenticated) {
       return (
-        <div className="flex items-center justify-center min-h-[80vh]">
-          <div className="text-center space-y-6 max-w-md mx-auto px-6">
+        <div className="relative flex items-center justify-center min-h-[80vh]">
+          <DynamicBackground />
+          <div className="relative z-10 text-center space-y-6 max-w-md mx-auto px-6 bg-background/80 backdrop-blur-sm rounded-2xl p-8 border">
             <div className="w-20 h-20 mx-auto debate-gradient rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-white">DA</span>
             </div>

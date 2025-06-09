@@ -1,9 +1,10 @@
-
 import { useState } from 'react';
 import { Globe, Users, Clock, MapPin, Star } from 'lucide-react';
+import { JoinSession } from './JoinSession';
 
 export const GlobalPractice = () => {
   const [activeTab, setActiveTab] = useState<'find' | 'create'>('find');
+  const [joinedSessionId, setJoinedSessionId] = useState<string | null>(null);
 
   const mockSessions = [
     {
@@ -49,6 +50,18 @@ export const GlobalPractice = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const handleJoinSession = (sessionId: number) => {
+    setJoinedSessionId(sessionId.toString());
+  };
+
+  const handleLeaveSession = () => {
+    setJoinedSessionId(null);
+  };
+
+  if (joinedSessionId) {
+    return <JoinSession sessionId={joinedSessionId} onBack={handleLeaveSession} />;
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -159,7 +172,10 @@ export const GlobalPractice = () => {
                       <div className="text-lg font-semibold">{session.participants}/{session.maxParticipants}</div>
                       <div className="text-xs text-muted-foreground">participants</div>
                     </div>
-                    <button className="px-6 py-2 debate-gradient text-white rounded-lg font-medium hover:opacity-90 transition-opacity">
+                    <button 
+                      onClick={() => handleJoinSession(session.id)}
+                      className="px-6 py-2 debate-gradient text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
+                    >
                       Join Session
                     </button>
                   </div>
