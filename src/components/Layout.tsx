@@ -31,9 +31,9 @@ export const Layout = () => {
   const renderSection = () => {
     if (!isAuthenticated) {
       return (
-        <div className="relative flex items-center justify-center min-h-[80vh]">
+        <div className="relative flex items-center justify-center min-h-[80vh] overflow-hidden">
           <DynamicBackground />
-          <div className="relative z-10 text-center space-y-6 max-w-md mx-auto px-6 bg-background/80 backdrop-blur-sm rounded-2xl p-8 border">
+          <div className="relative z-10 text-center space-y-6 max-w-md mx-auto px-6 bg-background/90 backdrop-blur-sm rounded-2xl p-8 border shadow-lg">
             <div className="w-20 h-20 mx-auto debate-gradient rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-white">DA</span>
             </div>

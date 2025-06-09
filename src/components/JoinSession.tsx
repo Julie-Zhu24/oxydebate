@@ -35,6 +35,9 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
   const [aiJudgment, setAiJudgment] = useState<any>(null);
   const [volume, setVolume] = useState(0.8);
 
+  const currentUser = participants.find(p => p.name === 'You');
+  const isHost = currentUser?.isHost || false;
+
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -42,15 +45,20 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
       interval = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
-            // Move to next speaker or end debate
-            return 420; // Reset for next speaker
+            // Move to next speaker or end debate (only host can control this)
+            if (isHost) {
+              // Logic for moving to next round would go here
+              // For now, just reset timer
+              return 420;
+            }
+            return 0;
           }
           return prev - 1;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [timeLeft, debateEnded]);
+  }, [timeLeft, debateEnded, isHost]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -96,12 +104,16 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
   };
 
   const inviteToStage = (participantId: string) => {
-    setParticipants(prev => prev.map(p => 
-      p.id === participantId ? { ...p, isOnStage: true } : p
-    ));
+    if (isHost) {
+      setParticipants(prev => prev.map(p => 
+        p.id === participantId ? { ...p, isOnStage: true } : p
+      ));
+    }
   };
 
   const endDebate = () => {
+    if (!isHost) return; // Only host can end debate
+    
     setDebateEnded(true);
     if (recognition && isRecording) {
       recognition.stop();
@@ -223,12 +235,14 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
               <div className="text-sm text-muted-foreground">Time Remaining</div>
             </div>
             
-            <button
-              onClick={endDebate}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
-            >
-              End Debate
-            </button>
+            {isHost && (
+              <button
+                onClick={endDebate}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+              >
+                End Debate
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -337,13 +351,15 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
                     <div className="font-medium">{participant.name}</div>
                     <div className="text-xs text-muted-foreground">{participant.country}</div>
                   </div>
-                  <button
-                    onClick={() => inviteToStage(participant.id)}
-                    className="p-1 hover:bg-muted rounded"
-                    title="Invite to stage"
-                  >
-                    <UserPlus size={16} />
-                  </button>
+                  {isHost && (
+                    <button
+                      onClick={() => inviteToStage(participant.id)}
+                      className="p-1 hover:bg-muted rounded"
+                      title="Invite to stage"
+                    >
+                      <UserPlus size={16} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -372,6 +388,10 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
               <div className="flex justify-between">
                 <span>Current Round:</span>
                 <span className="font-semibold">{currentRound}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Your Role:</span>
+                <span className="font-semibold">{isHost ? 'Host' : 'Participant'}</span>
               </div>
             </div>
           </div>

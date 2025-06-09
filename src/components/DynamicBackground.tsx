@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 
 export const DynamicBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mousePos = useRef({ x: 0, y: 0 });
+  const mousePos = useRef({ x: 0.5, y: 0.5 });
   const animationRef = useRef<number>();
 
   useEffect(() => {
@@ -40,35 +40,52 @@ export const DynamicBackground = () => {
     }> = [];
 
     // Initialize particles
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 80; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.3 + 0.1
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 1.5 + 0.5,
+        opacity: Math.random() * 0.4 + 0.1
       });
     }
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Create gradient background
-      const gradient = ctx.createRadialGradient(
+      // Create multiple gradient layers for depth
+      const gradient1 = ctx.createRadialGradient(
         mousePos.current.x * canvas.width,
         mousePos.current.y * canvas.height,
         0,
         mousePos.current.x * canvas.width,
         mousePos.current.y * canvas.height,
-        Math.max(canvas.width, canvas.height)
+        Math.max(canvas.width, canvas.height) * 0.6
       );
       
-      gradient.addColorStop(0, 'rgba(33, 150, 243, 0.05)');
-      gradient.addColorStop(0.5, 'rgba(33, 150, 243, 0.02)');
-      gradient.addColorStop(1, 'rgba(33, 150, 243, 0.01)');
+      gradient1.addColorStop(0, 'rgba(59, 130, 246, 0.08)');
+      gradient1.addColorStop(0.3, 'rgba(139, 92, 246, 0.04)');
+      gradient1.addColorStop(1, 'rgba(59, 130, 246, 0.02)');
       
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = gradient1;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Secondary gradient for more depth
+      const gradient2 = ctx.createRadialGradient(
+        (1 - mousePos.current.x) * canvas.width,
+        (1 - mousePos.current.y) * canvas.height,
+        0,
+        (1 - mousePos.current.x) * canvas.width,
+        (1 - mousePos.current.y) * canvas.height,
+        Math.max(canvas.width, canvas.height) * 0.4
+      );
+      
+      gradient2.addColorStop(0, 'rgba(139, 92, 246, 0.06)');
+      gradient2.addColorStop(0.5, 'rgba(59, 130, 246, 0.03)');
+      gradient2.addColorStop(1, 'rgba(139, 92, 246, 0.01)');
+      
+      ctx.fillStyle = gradient2;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Update and draw particles
@@ -78,10 +95,10 @@ export const DynamicBackground = () => {
         const dy = mousePos.current.y * canvas.height - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance < 150) {
-          const force = (150 - distance) / 150;
-          particle.vx += (dx / distance) * force * 0.01;
-          particle.vy += (dy / distance) * force * 0.01;
+        if (distance < 200) {
+          const force = (200 - distance) / 200;
+          particle.vx += (dx / distance) * force * 0.008;
+          particle.vy += (dy / distance) * force * 0.008;
         }
 
         // Update position
@@ -95,13 +112,22 @@ export const DynamicBackground = () => {
         if (particle.y > canvas.height) particle.y = 0;
 
         // Apply friction
-        particle.vx *= 0.99;
-        particle.vy *= 0.99;
+        particle.vx *= 0.995;
+        particle.vy *= 0.995;
 
-        // Draw particle
+        // Draw particle with glow effect
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(33, 150, 243, ${particle.opacity})`;
+        
+        // Glow effect
+        const glowGradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, particle.size * 3
+        );
+        glowGradient.addColorStop(0, `rgba(59, 130, 246, ${particle.opacity})`);
+        glowGradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        
+        ctx.fillStyle = glowGradient;
         ctx.fill();
 
         // Draw connections
@@ -110,12 +136,12 @@ export const DynamicBackground = () => {
           const dy = particle.y - otherParticle.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
 
-          if (distance < 120) {
+          if (distance < 150) {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(otherParticle.x, otherParticle.y);
-            ctx.strokeStyle = `rgba(33, 150, 243, ${0.1 * (1 - distance / 120)})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(59, 130, 246, ${0.15 * (1 - distance / 150)})`;
+            ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         });
@@ -138,8 +164,11 @@ export const DynamicBackground = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: -1 }}
+      className="absolute inset-0 pointer-events-none"
+      style={{ 
+        zIndex: 1,
+        opacity: 0.7
+      }}
     />
   );
 };
