@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Globe, Users, Clock, MapPin, Star } from 'lucide-react';
 import { JoinSession } from './JoinSession';
 
 export const GlobalPractice = () => {
   const [activeTab, setActiveTab] = useState<'find' | 'create'>('find');
   const [joinedSessionId, setJoinedSessionId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const mockSessions = [
     {
@@ -14,7 +23,7 @@ export const GlobalPractice = () => {
       country: "Singapore",
       participants: 3,
       maxParticipants: 8,
-      timeUntilStart: "15 minutes",
+      startTime: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes from now
       level: "Intermediate",
       rating: 4.8
     },
@@ -25,7 +34,7 @@ export const GlobalPractice = () => {
       country: "United States",
       participants: 5,
       maxParticipants: 6,
-      timeUntilStart: "1 hour",
+      startTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
       level: "Advanced",
       rating: 4.9
     },
@@ -36,11 +45,33 @@ export const GlobalPractice = () => {
       country: "United Kingdom",
       participants: 2,
       maxParticipants: 8,
-      timeUntilStart: "30 minutes",
+      startTime: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
       level: "Beginner",
       rating: 4.7
     }
   ];
+
+  const getTimeUntilStart = (startTime: Date) => {
+    const diff = startTime.getTime() - currentTime.getTime();
+    
+    if (diff <= 0) {
+      return "Session started";
+    }
+    
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${remainingMinutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  const canJoinSession = (startTime: Date) => {
+    const diff = startTime.getTime() - currentTime.getTime();
+    return diff <= 5 * 60 * 1000; // Can join 5 minutes before start
+  };
 
   const getLevelColor = (level: string) => {
     switch (level) {
@@ -136,52 +167,64 @@ export const GlobalPractice = () => {
 
           {/* Sessions List */}
           <div className="space-y-4">
-            {mockSessions.map((session) => (
-              <div key={session.id} className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-semibold">{session.title}</h3>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(session.level)}`}>
-                        {session.level}
-                      </span>
+            {mockSessions.map((session) => {
+              const timeUntilStart = getTimeUntilStart(session.startTime);
+              const canJoin = canJoinSession(session.startTime);
+              
+              return (
+                <div key={session.id} className="bg-card border rounded-lg p-6 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-semibold">{session.title}</h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(session.level)}`}>
+                          {session.level}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <Users size={16} />
+                          <span>Host: {session.host}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <MapPin size={16} />
+                          <span>{session.country}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Clock size={16} />
+                          <span>
+                            {timeUntilStart === "Session started" ? "Live now" : `Starts in ${timeUntilStart}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Star size={16} />
+                          <span>{session.rating}</span>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-1">
-                        <Users size={16} />
-                        <span>Host: {session.host}</span>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-center">
+                        <div className="text-lg font-semibold">{session.participants}/{session.maxParticipants}</div>
+                        <div className="text-xs text-muted-foreground">participants</div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <MapPin size={16} />
-                        <span>{session.country}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock size={16} />
-                        <span>Starts in {session.timeUntilStart}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Star size={16} />
-                        <span>{session.rating}</span>
-                      </div>
+                      <button 
+                        onClick={() => handleJoinSession(session.id)}
+                        disabled={!canJoin && timeUntilStart !== "Session started"}
+                        className={`px-6 py-2 rounded-lg font-medium transition-opacity ${
+                          canJoin || timeUntilStart === "Session started"
+                            ? 'debate-gradient text-white hover:opacity-90'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {timeUntilStart === "Session started" ? "Join Live" : canJoin ? "Join Session" : "Wait to Join"}
+                      </button>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">{session.participants}/{session.maxParticipants}</div>
-                      <div className="text-xs text-muted-foreground">participants</div>
-                    </div>
-                    <button 
-                      onClick={() => handleJoinSession(session.id)}
-                      className="px-6 py-2 debate-gradient text-white rounded-lg font-medium hover:opacity-90 transition-opacity"
-                    >
-                      Join Session
-                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

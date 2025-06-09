@@ -1,6 +1,5 @@
-
 import { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Play, Pause, Square, Music, Download, Upload } from 'lucide-react';
+import { Mic, MicOff, Play, Pause, Square, Music, Download, Upload, AlertCircle } from 'lucide-react';
 import { FirecrawlService } from '../utils/FirecrawlService';
 
 interface PodcastRecorderProps {
@@ -25,17 +24,46 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
   const [isLoadingMusic, setIsLoadingMusic] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [showApiKeyInput, setShowApiKeyInput] = useState(!FirecrawlService.getApiKey());
+  const [microphoneError, setMicrophoneError] = useState<string | null>(null);
+  const [microphonePermission, setMicrophonePermission] = useState<'granted' | 'denied' | 'prompt' | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const existingKey = FirecrawlService.getApiKey();
     if (existingKey) {
       setShowApiKeyInput(false);
     }
+    
+    // Check microphone permission on component mount
+    checkMicrophonePermission();
+    
+    return () => {
+      // Cleanup on unmount
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
   }, []);
+
+  const checkMicrophonePermission = async () => {
+    try {
+      const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      setMicrophonePermission(permission.state);
+      
+      permission.onchange = () => {
+        setMicrophonePermission(permission.state);
+      };
+    } catch (error) {
+      console.log('Permission API not supported');
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -58,30 +86,78 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      setMicrophoneError(null);
+      console.log('Requesting microphone access...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      streamRef.current = stream;
+      console.log('Microphone access granted');
+      
+      // Check if MediaRecorder is supported
+      if (!MediaRecorder.isTypeSupported('audio/webm') && !MediaRecorder.isTypeSupported('audio/mp4')) {
+        throw new Error('Audio recording not supported in this browser');
+      }
+      
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          console.log('Audio data received:', event.data.size, 'bytes');
         }
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        console.log('Recording stopped. Blob size:', audioBlob.size, 'bytes');
         setAudioBlob(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+        
+        // Stop all tracks
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        setMicrophoneError('Recording error occurred');
+      };
+
+      mediaRecorder.start(100); // Collect data every 100ms
       setIsRecording(true);
       setIsPaused(false);
+      setRecordingTime(0);
       startTimer();
+      console.log('Recording started');
+      
     } catch (error) {
       console.error('Error starting recording:', error);
-      alert('Could not access microphone. Please check permissions.');
+      let errorMessage = 'Could not access microphone. ';
+      
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Please grant microphone permission and try again.';
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No microphone found.';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage += 'Audio recording not supported in this browser.';
+        } else {
+          errorMessage += error.message;
+        }
+      }
+      
+      setMicrophoneError(errorMessage);
     }
   };
 
@@ -122,13 +198,6 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
 
     setIsLoadingMusic(true);
     try {
-      // Search for royalty-free music websites
-      const musicSites = [
-        'https://freemusicarchive.org',
-        'https://incompetech.com',
-        'https://www.bensound.com'
-      ];
-
       const mockMusic: BackgroundMusic[] = [
         { name: 'Corporate Upbeat', url: 'music1.mp3', duration: '2:30', genre: 'Corporate' },
         { name: 'Acoustic Guitar', url: 'music2.mp3', duration: '3:15', genre: 'Acoustic' },
@@ -138,8 +207,6 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
         { name: 'Electronic Beat', url: 'music6.mp3', duration: '3:30', genre: 'Electronic' }
       ];
 
-      // For demo purposes, we'll use mock data
-      // In a real implementation, you'd crawl music sites for actual tracks
       setBackgroundMusic(mockMusic);
       
     } catch (error) {
@@ -199,6 +266,21 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
 
   return (
     <div className="space-y-6">
+      {/* Microphone Permission Status */}
+      {microphonePermission === 'denied' && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2">
+          <AlertCircle size={20} className="text-red-600" />
+          <p className="text-red-800">Microphone access denied. Please enable microphone permission in your browser settings.</p>
+        </div>
+      )}
+      
+      {microphoneError && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center space-x-2">
+          <AlertCircle size={20} className="text-yellow-600" />
+          <p className="text-yellow-800">{microphoneError}</p>
+        </div>
+      )}
+
       {/* Recording Controls */}
       <div className="bg-card border rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Record Your Podcast</h3>
@@ -210,7 +292,8 @@ export const PodcastRecorder = ({ onRecordingComplete, onCancel }: PodcastRecord
             {!isRecording && !audioBlob && (
               <button
                 onClick={startRecording}
-                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                disabled={microphonePermission === 'denied'}
+                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Mic size={20} />
                 <span>Start Recording</span>

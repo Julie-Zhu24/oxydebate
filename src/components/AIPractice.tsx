@@ -6,7 +6,7 @@ import { PracticeSession } from './PracticeSession';
 import { PracticeHistory } from './PracticeHistory';
 
 export type DebateFormat = 'WSDC' | 'PF';
-export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'GW' | 'OW' | 'GR' | 'OR' | 'MG' | 'MO';
+export type Speaker = 'PM' | 'LO' | 'DPM' | 'DLO' | 'GW' | 'OW' | 'GR' | 'OR' | 'constructive' | 'rebuttal' | 'summary' | 'final-focus';
 export type Skill = 'rebuttal' | 'argumentation' | 'weighing' | 'modeling' | 'case-building' | 'POI' | 'summary';
 
 export interface PracticeConfig {
@@ -33,10 +33,10 @@ export const AIPractice = () => {
       { id: 'OR' as Speaker, label: 'Opposition Reply', description: 'Closing Opposition (2nd)' },
     ],
     PF: [
-      { id: 'MG' as Speaker, label: 'Member Government', description: 'First Pro Speaker' },
-      { id: 'MO' as Speaker, label: 'Member Opposition', description: 'First Con Speaker' },
-      { id: 'GW' as Speaker, label: 'Government Whip', description: 'Final Pro Speaker' },
-      { id: 'OW' as Speaker, label: 'Opposition Whip', description: 'Final Con Speaker' },
+      { id: 'constructive' as Speaker, label: 'Constructive', description: 'Opening case presentation' },
+      { id: 'rebuttal' as Speaker, label: 'Rebuttal', description: 'Attacking opponent arguments' },
+      { id: 'summary' as Speaker, label: 'Summary', description: 'Crystallizing key issues' },
+      { id: 'final-focus' as Speaker, label: 'Final Focus', description: 'Closing arguments and weighing' },
     ],
   };
 
