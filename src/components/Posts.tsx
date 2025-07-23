@@ -51,6 +51,7 @@ export const Posts = () => {
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
+  const [comments, setComments] = useState<{[postId: string]: any[]}>({});
   
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -244,6 +245,38 @@ export const Posts = () => {
     }
   };
 
+  const fetchComments = async (postId: string) => {
+    try {
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if (commentsError) throw commentsError;
+
+      // Get user profiles for comment authors
+      const userIds = [...new Set(commentsData?.map(comment => comment.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, username, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      const profilesMap = new Map(profilesData?.map(profile => [profile.user_id, profile]) || []);
+      
+      const commentsWithProfiles = commentsData?.map(comment => ({
+        ...comment,
+        profile: profilesMap.get(comment.user_id) || null
+      })) || [];
+
+      setComments(prev => ({ ...prev, [postId]: commentsWithProfiles }));
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
   const addComment = async (postId: string) => {
     if (!user) {
       toast({
@@ -274,6 +307,7 @@ export const Posts = () => {
       });
       
       fetchPosts(); // Refresh to get updated counts
+      fetchComments(postId); // Refresh comments for this post
     } catch (error) {
       console.error('Error adding comment:', error);
       toast({
@@ -518,7 +552,14 @@ export const Posts = () => {
                     variant="ghost" 
                     size="sm" 
                     className="gap-2"
-                    onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                    onClick={() => {
+                      if (showComments === post.id) {
+                        setShowComments(null);
+                      } else {
+                        setShowComments(post.id);
+                        fetchComments(post.id);
+                      }
+                    }}
                   >
                     <MessageCircle className="w-4 h-4" />
                     {post.comments_count}
@@ -552,8 +593,32 @@ export const Posts = () => {
                         Post
                       </Button>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Comments will appear here once the comments fetching is implemented
+                    <div className="space-y-3">
+                      {comments[post.id]?.length > 0 ? (
+                        comments[post.id].map((comment: any) => (
+                          <div key={comment.id} className="flex gap-3 p-3 bg-secondary/10 rounded-lg">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={comment.profile?.avatar_url} />
+                              <AvatarFallback className="text-xs">
+                                {comment.profile?.display_name?.[0] || comment.profile?.username?.[0] || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium">
+                                  {comment.profile?.display_name || comment.profile?.username}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(comment.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-sm">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No comments yet. Be the first to comment!</p>
+                      )}
                     </div>
                   </div>
                 )}
