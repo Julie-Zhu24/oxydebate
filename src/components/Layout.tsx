@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Navigation } from './Navigation';
 import { AIPractice } from './AIPractice';
 import { GlobalPractice } from './GlobalPractice';
-import { Rankings } from './Rankings';
+import { RealRankings } from './RealRankings';
 import { Posts } from './Posts';
 import { DynamicBackground } from './DynamicBackground';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ export const Layout = () => {
       case 'global-practice':
         return <GlobalPractice />;
       case 'rankings':
-        return <Rankings />;
+        return <RealRankings />;
       case 'content':
         return <Posts />;
       default:

@@ -120,6 +120,45 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_sessions: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          duration_seconds: number
+          feedback: string | null
+          format: string
+          id: string
+          score: number | null
+          session_type: string | null
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          duration_seconds: number
+          feedback?: string | null
+          format: string
+          id?: string
+          score?: number | null
+          session_type?: string | null
+          topic: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          duration_seconds?: number
+          feedback?: string | null
+          format?: string
+          id?: string
+          score?: number | null
+          session_type?: string | null
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -173,7 +212,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      global_rankings: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string | null
+          losses: number | null
+          rank: number | null
+          rating: number | null
+          total_practice_time: number | null
+          total_sessions: number | null
+          user_id: string | null
+          username: string | null
+          win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
