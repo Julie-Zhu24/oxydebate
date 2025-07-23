@@ -498,6 +498,8 @@ export const RealGlobalPractice = () => {
                   min={new Date().toISOString().slice(0, 16)}
                 />
                 <p className="text-xs text-muted-foreground">
+                  All times are in Eastern Time (ET). Schedule your session accordingly.
+                </p>
                   Select when the debate should start
                 </p>
               </div>
