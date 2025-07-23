@@ -120,6 +120,59 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_matches: {
+        Row: {
+          created_at: string
+          creator_user_id: string
+          difficulty: string
+          end_time: string | null
+          id: string
+          opponent_user_id: string | null
+          start_time: string | null
+          status: string
+          topic_id: string | null
+          topic_title: string
+          updated_at: string
+          winner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_user_id: string
+          difficulty?: string
+          end_time?: string | null
+          id?: string
+          opponent_user_id?: string | null
+          start_time?: string | null
+          status?: string
+          topic_id?: string | null
+          topic_title: string
+          updated_at?: string
+          winner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_user_id?: string
+          difficulty?: string
+          end_time?: string | null
+          id?: string
+          opponent_user_id?: string | null
+          start_time?: string | null
+          status?: string
+          topic_id?: string | null
+          topic_title?: string
+          updated_at?: string
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_matches_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_sessions: {
         Row: {
           completed: boolean | null
@@ -207,6 +260,42 @@ export type Database = {
           user_id?: string
           username?: string | null
           wins?: number | null
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          description: string
+          difficulty: string
+          id: string
+          is_custom: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description: string
+          difficulty?: string
+          id?: string
+          is_custom?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          description?: string
+          difficulty?: string
+          id?: string
+          is_custom?: boolean
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

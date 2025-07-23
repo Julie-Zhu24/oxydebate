@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Navigation } from './Navigation';
 import { AIPractice } from './AIPractice';
-import { GlobalPractice } from './GlobalPractice';
+import { RealGlobalPractice } from './RealGlobalPractice';
 import { RealRankings } from './RealRankings';
 import { Posts } from './Posts';
 import { DynamicBackground } from './DynamicBackground';
@@ -42,7 +42,7 @@ export const Layout = () => {
       case 'ai-practice':
         return <AIPractice />;
       case 'global-practice':
-        return <GlobalPractice />;
+        return <RealGlobalPractice />;
       case 'rankings':
         return <RealRankings />;
       case 'content':
