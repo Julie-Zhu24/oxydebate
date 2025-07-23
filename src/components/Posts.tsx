@@ -14,7 +14,7 @@ interface Post {
   id: string;
   title: string;
   content: string;
-  post_type: 'text' | 'audio' | 'video';
+  post_type: string;
   audio_url?: string | null;
   video_url?: string | null;
   tags: string[];
@@ -63,7 +63,7 @@ export const Posts = () => {
         .from('posts')
         .select(`
           *,
-          profiles:user_id (
+          profiles!posts_user_id_fkey (
             display_name,
             username,
             avatar_url
@@ -72,7 +72,7 @@ export const Posts = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPosts(data || []);
+      setPosts((data as any) || []);
     } catch (error) {
       toast({
         title: "Error",
