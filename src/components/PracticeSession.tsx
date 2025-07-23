@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Play, Pause, RotateCcw, Clock, Bot, Square, MessageSquare, Save, X, History, Mic, MicOff } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RotateCcw, Clock, Bot, Square, MessageSquare, Save, X, History, Mic, MicOff, Loader2 } from 'lucide-react';
 import { DebateFormat, Speaker, Skill } from './AIPractice';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PracticeConfig {
   format: DebateFormat;
@@ -37,18 +38,42 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
   const [showSaveOptions, setShowSaveOptions] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
+  const [loadingContext, setLoadingContext] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    // Set debate context immediately for non-PM speakers
+    // Generate AI-powered debate context for non-PM speakers
     if (config.speaker !== 'PM' && config.speaker !== 'constructive') {
+      generateDebateContext();
+    }
+  }, [config.speaker, config.topic, config.format]);
+
+  const generateDebateContext = async () => {
+    setLoadingContext(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-debate-context', {
+        body: {
+          topic: config.topic,
+          format: config.format,
+          speaker: config.speaker
+        }
+      });
+
+      if (error) throw error;
+      setDebateContext(data.context || 'Context generation temporarily unavailable.');
+    } catch (error) {
+      console.error('Error generating debate context:', error);
+      // Fallback to static context
       const context = getDebateContext();
       if (Array.isArray(context) && context.length > 0) {
         setDebateContext(context.join('\n'));
       }
+    } finally {
+      setLoadingContext(false);
     }
-  }, [config.speaker]);
+  };
 
   useEffect(() => {
     // Initialize Web Speech API
@@ -268,7 +293,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     }
   };
 
-  const handleSessionEnd = () => {
+  const handleSessionEnd = async () => {
     setIsRecording(false);
     setSessionEnded(true);
     
@@ -276,10 +301,59 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
       recognition.stop();
     }
     
-    // Generate feedback
-    const generatedFeedback = generateDetailedFeedback();
-    setFeedback(generatedFeedback);
+    // Generate AI feedback if transcript is available
+    if (transcript.trim().length > 0) {
+      await generateAIFeedback();
+    } else {
+      // Fallback to static feedback
+      const generatedFeedback = generateDetailedFeedback();
+      setFeedback(generatedFeedback);
+    }
     setShowSaveOptions(true);
+  };
+
+  const generateAIFeedback = async () => {
+    setLoadingFeedback(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ai-feedback', {
+        body: {
+          transcript,
+          topic: config.topic,
+          speaker: config.speaker,
+          skill: config.skill
+        }
+      });
+
+      if (error) throw error;
+      
+      const parsedFeedback = parseAIFeedback(data.feedback);
+      setFeedback(parsedFeedback);
+    } catch (error) {
+      console.error('Error generating AI feedback:', error);
+      // Fallback to static feedback
+      const generatedFeedback = generateDetailedFeedback();
+      setFeedback(generatedFeedback);
+    } finally {
+      setLoadingFeedback(false);
+    }
+  };
+
+  const parseAIFeedback = (feedbackText: string): FeedbackData => {
+    const timeUsed = config.timeLimit * 60 - timeLeft;
+    
+    // Try to extract score from the feedback
+    const scoreMatch = feedbackText.match(/(?:score|rating)[:\s]*(\d+(?:\.\d+)?)/i);
+    const score = scoreMatch ? parseFloat(scoreMatch[1]) : 75;
+
+    return {
+      score,
+      strengths: feedbackText,
+      improvements: '',
+      specific: '',
+      timing: `Used ${formatTime(timeUsed)} of ${formatTime(config.timeLimit * 60)}`,
+      timeUsed: formatTime(timeUsed),
+      totalTime: formatTime(config.timeLimit * 60)
+    };
   };
 
   const savePractice = () => {
@@ -356,11 +430,10 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
           <h3 className="font-semibold mb-3 flex items-center space-x-2">
             <MessageSquare size={18} />
             <span>Debate So Far</span>
+            {loadingContext && <Loader2 size={16} className="animate-spin" />}
           </h3>
           <div className="text-sm space-y-1">
-            {debateContext.split('\n').map((line, index) => (
-              <div key={index} className="text-muted-foreground">{line}</div>
-            ))}
+            <div className="text-muted-foreground leading-relaxed">{debateContext}</div>
           </div>
         </div>
       )}
@@ -448,7 +521,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
         <div className="bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20 rounded-xl p-8">
           <div className="flex items-start space-x-4">
             <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center flex-shrink-0">
-              <Bot className="text-white" size={24} />
+              {loadingFeedback ? <Loader2 className="text-white animate-spin" size={24} /> : <Bot className="text-white" size={24} />}
             </div>
             <div className="flex-1 space-y-6">
               <div className="flex items-center justify-between">

@@ -1,6 +1,8 @@
 
-import { Clock, User, MessageSquare, Target, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, User, MessageSquare, Target, TrendingUp, Loader2 } from 'lucide-react';
 import { PracticeConfig } from './AIPractice';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DebateTrackerProps {
   config: PracticeConfig;
@@ -10,8 +12,36 @@ interface DebateTrackerProps {
 }
 
 export const DebateTracker = ({ config, transcript, timeElapsed, isActive }: DebateTrackerProps) => {
+  const [debateContext, setDebateContext] = useState<string>('');
+  const [loadingContext, setLoadingContext] = useState(false);
+
+  useEffect(() => {
+    generateDebateContext();
+  }, [config.topic, config.format, config.speaker]);
+
+  const generateDebateContext = async () => {
+    setLoadingContext(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-debate-context', {
+        body: {
+          topic: config.topic,
+          format: config.format,
+          speaker: config.speaker
+        }
+      });
+
+      if (error) throw error;
+      setDebateContext(data.context || 'Context generation temporarily unavailable.');
+    } catch (error) {
+      console.error('Error generating debate context:', error);
+      setDebateContext(getTopicSpecificContext(config.topic).currentFocus);
+    } finally {
+      setLoadingContext(false);
+    }
+  };
+
   const getTopicSpecificContext = (topic: string) => {
-    // Generate topic-specific context and key points
+    // Fallback context generation
     const contexts = {
       'Technology': {
         keyAreas: ['Privacy & Data', 'Innovation vs Regulation', 'Digital Divide', 'Automation Impact'],
@@ -113,17 +143,19 @@ export const DebateTracker = ({ config, transcript, timeElapsed, isActive }: Deb
         </div>
       </div>
 
-      {/* Topic-Specific Analysis */}
+      {/* AI-Generated Debate Context */}
       <div className="bg-card border rounded-lg p-6">
         <div className="flex items-center space-x-2 mb-4">
           <Target size={20} className="text-primary" />
-          <h3 className="text-lg font-semibold">Topic Analysis</h3>
+          <h3 className="text-lg font-semibold">Debate So Far</h3>
+          {loadingContext && <Loader2 size={16} className="animate-spin" />}
         </div>
         
         <div className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Current Focus</h4>
-            <p className="text-sm text-muted-foreground">{topicContext.currentFocus}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {debateContext || 'Generating context...'}
+            </p>
           </div>
           
           <div>
