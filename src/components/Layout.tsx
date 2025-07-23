@@ -5,7 +5,7 @@ import { Navigation } from './Navigation';
 import { AIPractice } from './AIPractice';
 import { GlobalPractice } from './GlobalPractice';
 import { Rankings } from './Rankings';
-import { Content } from './Content';
+import { Posts } from './Posts';
 import { DynamicBackground } from './DynamicBackground';
 import { Button } from '@/components/ui/button';
 
@@ -46,7 +46,7 @@ export const Layout = () => {
       case 'rankings':
         return <Rankings />;
       case 'content':
-        return <Content />;
+        return <Posts />;
       default:
         return <AIPractice />;
     }
