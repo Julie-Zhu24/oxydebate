@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Shuffle, ArrowLeft, ExternalLink, Filter } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface TopicSelectorProps {
   onTopicSelected: (topic: string) => void;
@@ -8,10 +10,11 @@ interface TopicSelectorProps {
 }
 
 interface Topic {
+  id: string;
   title: string;
   description: string;
   category: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: string;
 }
 
 export const TopicSelector = ({ onTopicSelected, onBack }: TopicSelectorProps) => {
@@ -19,53 +22,40 @@ export const TopicSelector = ({ onTopicSelected, onBack }: TopicSelectorProps) =
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customTopic, setCustomTopic] = useState('');
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Mock topics data (in real implementation, this would come from the API)
-  const mockTopics: Topic[] = [
-    {
-      title: "This House believes that social media does more harm than good",
-      description: "Debate the impact of social media on society, mental health, and democracy",
-      category: "Technology",
-      difficulty: "Intermediate"
-    },
-    {
-      title: "This House would ban private healthcare",
-      description: "Examine the role of private healthcare in modern society",
-      category: "Healthcare",
-      difficulty: "Advanced"
-    },
-    {
-      title: "This House believes that standardized testing should be abolished",
-      description: "Debate the effectiveness and fairness of standardized testing",
-      category: "Education",
-      difficulty: "Beginner"
-    },
-    {
-      title: "This House would implement a universal basic income",
-      description: "Explore the economic and social implications of UBI",
-      category: "Economics",
-      difficulty: "Advanced"
-    },
-    {
-      title: "This House believes that animals should have the same rights as humans",
-      description: "Debate animal rights and ethical treatment",
-      category: "Ethics",
-      difficulty: "Intermediate"
-    },
-    {
-      title: "This House would ban single-use plastics",
-      description: "Examine environmental policy and corporate responsibility",
-      category: "Environment",
-      difficulty: "Beginner"
-    }
-  ];
-
-  const categories = ['all', 'Technology', 'Healthcare', 'Education', 'Economics', 'Ethics', 'Environment', 'Politics', 'Social Issues'];
+  const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(['all']);
+  const { toast } = useToast();
 
   useEffect(() => {
-    setTopics(mockTopics);
+    fetchTopics();
   }, []);
+
+  const fetchTopics = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('topics')
+        .select('*')
+        .order('title');
+
+      if (error) throw error;
+
+      setTopics(data || []);
+      
+      // Extract unique categories
+      const uniqueCategories = ['all', ...new Set(data?.map(topic => topic.category) || [])];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load topics",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredTopics = topics.filter(topic => {
     const matchesSearch = topic.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,8 +65,10 @@ export const TopicSelector = ({ onTopicSelected, onBack }: TopicSelectorProps) =
   });
 
   const getRandomTopic = () => {
-    const randomTopic = mockTopics[Math.floor(Math.random() * mockTopics.length)];
-    onTopicSelected(randomTopic.title);
+    if (topics.length > 0) {
+      const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+      onTopicSelected(randomTopic.title);
+    }
   };
 
   const handleCustomTopicSubmit = () => {
@@ -86,13 +78,23 @@ export const TopicSelector = ({ onTopicSelected, onBack }: TopicSelectorProps) =
   };
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-800';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'Advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    switch (difficulty.toLowerCase()) {
+      case 'beginner': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'intermediate': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'advanced': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="text-center py-12">
+          <div className="animate-pulse text-lg">Loading topics...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -167,8 +169,8 @@ export const TopicSelector = ({ onTopicSelected, onBack }: TopicSelectorProps) =
 
       {/* Topics Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTopics.map((topic, index) => (
-          <div key={index} className="border rounded-lg p-6 hover:shadow-lg transition-shadow bg-card">
+        {filteredTopics.map((topic) => (
+          <div key={topic.id} className="border rounded-lg p-6 hover:shadow-lg transition-shadow bg-card">
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(topic.difficulty)}`}>
