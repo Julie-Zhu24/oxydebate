@@ -59,21 +59,37 @@ export const Posts = () => {
 
   const fetchPosts = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          *,
-          profiles:user_id(
-            display_name,
-            username,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPosts((data as any) || []);
+      if (postsError) throw postsError;
+
+      // Get unique user IDs
+      const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
+      
+      // Fetch profiles for those user IDs
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, username, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of user_id to profile
+      const profilesMap = new Map(profilesData?.map(profile => [profile.user_id, profile]) || []);
+
+      // Combine posts with their profiles
+      const postsWithProfiles = postsData?.map(post => ({
+        ...post,
+        profiles: profilesMap.get(post.user_id) || null
+      })) || [];
+
+      setPosts(postsWithProfiles);
     } catch (error) {
+      console.error('Error fetching posts:', error);
       toast({
         title: "Error",
         description: "Failed to load posts",
