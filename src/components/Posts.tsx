@@ -49,6 +49,8 @@ export const Posts = () => {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
   
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -183,16 +185,25 @@ export const Posts = () => {
   };
 
   const toggleLike = async (postId: string) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like posts",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Check if already liked
-      const { data: existingLike } = await supabase
+      const { data: existingLike, error: checkError } = await supabase
         .from('likes')
         .select('id')
         .eq('post_id', postId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError) throw checkError;
 
       if (existingLike) {
         // Unlike
@@ -203,6 +214,11 @@ export const Posts = () => {
           .eq('user_id', user.id);
         
         if (error) throw error;
+        
+        toast({
+          title: "Unlike",
+          description: "Removed like from post",
+        });
       } else {
         // Like
         const { error } = await supabase
@@ -210,10 +226,16 @@ export const Posts = () => {
           .insert({ post_id: postId, user_id: user.id });
         
         if (error) throw error;
+        
+        toast({
+          title: "Liked!",
+          description: "Added like to post",
+        });
       }
 
       fetchPosts(); // Refresh to get updated counts
     } catch (error) {
+      console.error('Error toggling like:', error);
       toast({
         title: "Error",
         description: "Failed to update like",
@@ -222,18 +244,96 @@ export const Posts = () => {
     }
   };
 
+  const addComment = async (postId: string) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to comment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newComment.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: newComment.trim()
+        });
+
+      if (error) throw error;
+
+      setNewComment('');
+      toast({
+        title: "Comment added!",
+        description: "Your comment has been posted",
+      });
+      
+      fetchPosts(); // Refresh to get updated counts
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      });
+    }
+  };
+
   const playAudio = async (audioUrl: string, postId: string) => {
     if (playingAudio === postId) {
+      // Stop current audio
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+      });
       setPlayingAudio(null);
       return;
     }
 
-    setPlayingAudio(postId);
-    // In a real implementation, you would play the actual audio file
-    // For now, we'll just simulate playing
-    setTimeout(() => {
+    try {
+      setPlayingAudio(postId);
+      
+      // For now, create a simple audio element for testing
+      // In a real implementation, you would use the actual audio URL from storage
+      const audio = new Audio();
+      
+      // Generate a simple test tone for demonstration
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 2);
+      
+      setTimeout(() => {
+        setPlayingAudio(null);
+        audioContext.close();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error playing audio:', error);
       setPlayingAudio(null);
-    }, 3000);
+      toast({
+        title: "Error",
+        description: "Could not play audio",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -408,13 +508,18 @@ export const Posts = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => toggleLike(post.id)}
-                    className="gap-2"
+                    className="gap-2 hover:text-red-500 transition-colors"
                   >
                     <Heart className="w-4 h-4" />
                     {post.likes_count}
                   </Button>
                   
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                  >
                     <MessageCircle className="w-4 h-4" />
                     {post.comments_count}
                   </Button>
@@ -424,6 +529,34 @@ export const Posts = () => {
                     Share
                   </Button>
                 </div>
+
+                {showComments === post.id && (
+                  <div className="mt-4 space-y-3 border-t border-border/30 pt-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Write a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            addComment(post.id);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={() => addComment(post.id)}
+                        disabled={!newComment.trim()}
+                        size="sm"
+                      >
+                        Post
+                      </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Comments will appear here once the comments fetching is implemented
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))
