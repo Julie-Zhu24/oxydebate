@@ -31,6 +31,12 @@ interface PracticeMatch {
     avatar_url?: string;
     rating: number;
   };
+  opponent_profile?: {
+    display_name: string;
+    username: string;
+    avatar_url?: string;
+    rating: number;
+  };
 }
 
 interface Topic {
@@ -42,12 +48,14 @@ interface Topic {
 }
 
 export const RealGlobalPractice = () => {
-  const [activeTab, setActiveTab] = useState<'find' | 'create'>('find');
+  const [activeTab, setActiveTab] = useState<'find' | 'create' | 'attended'>('find');
   const [matches, setMatches] = useState<PracticeMatch[]>([]);
+  const [attendedSessions, setAttendedSessions] = useState<PracticeMatch[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [joinedSessionId, setJoinedSessionId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showCustomTopic, setShowCustomTopic] = useState(false);
   
   // Create session form
   const [newSession, setNewSession] = useState({
@@ -69,6 +77,7 @@ export const RealGlobalPractice = () => {
   useEffect(() => {
     fetchMatches();
     fetchTopics();
+    fetchAttendedSessions();
   }, []);
 
   const fetchMatches = async () => {
@@ -115,25 +124,92 @@ export const RealGlobalPractice = () => {
     }
   };
 
+  const fetchAttendedSessions = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('practice_matches')
+        .select(`
+          *,
+          creator_profile:profiles!practice_matches_creator_user_id_fkey (
+            display_name,
+            username,
+            avatar_url,
+            rating
+          ),
+          opponent_profile:profiles!practice_matches_opponent_user_id_fkey (
+            display_name,
+            username,
+            avatar_url,
+            rating
+          )
+        `)
+        .or(`creator_user_id.eq.${user.id},opponent_user_id.eq.${user.id}`)
+        .eq('status', 'completed')
+        .order('end_time', { ascending: false });
+
+      if (error) throw error;
+      setAttendedSessions((data as any) || []);
+    } catch (error) {
+      console.error('Error fetching attended sessions:', error);
+    }
+  };
+
   const createSession = async () => {
-    if (!user || !newSession.topic_title || !newSession.difficulty) {
+    if (!user || !newSession.topic_title || !newSession.difficulty || !newSession.start_time) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including start time",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if start time is in the past
+    const startTime = new Date(newSession.start_time);
+    const now = new Date();
+    if (startTime <= now) {
+      toast({
+        title: "Warning",
+        description: "Start time cannot be in the past. Please select a future time.",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      // If custom topic, save it to topics table first
+      let topicId = newSession.topic_id;
+      if (showCustomTopic && newSession.topic_title) {
+        const { data: newTopic, error: topicError } = await supabase
+          .from('topics')
+          .insert({
+            title: newSession.topic_title,
+            description: `Custom topic created by user`,
+            category: 'custom',
+            difficulty: newSession.difficulty,
+            is_custom: true,
+            created_by_user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (topicError) throw topicError;
+        topicId = newTopic.id;
+        
+        // Refresh topics list
+        fetchTopics();
+      }
+
       const { error } = await supabase
         .from('practice_matches')
         .insert({
           creator_user_id: user.id,
-          topic_id: newSession.topic_id || null,
+          topic_id: topicId || null,
           topic_title: newSession.topic_title,
           difficulty: newSession.difficulty,
-          start_time: newSession.start_time || null,
+          start_time: newSession.start_time,
           status: 'waiting'
         });
 
@@ -151,6 +227,7 @@ export const RealGlobalPractice = () => {
         start_time: '',
         description: ''
       });
+      setShowCustomTopic(false);
 
       fetchMatches();
       setActiveTab('find');
@@ -266,10 +343,11 @@ export const RealGlobalPractice = () => {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'find' | 'create')}>
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'find' | 'create' | 'attended')}>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="find">Find Sessions</TabsTrigger>
           <TabsTrigger value="create">Create Session</TabsTrigger>
+          <TabsTrigger value="attended">Attended Sessions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="find" className="space-y-4">
@@ -341,35 +419,58 @@ export const RealGlobalPractice = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Topic</label>
-                <Select value={newSession.topic_id} onValueChange={(value) => {
-                  const topic = topics.find(t => t.id === value);
-                  setNewSession(prev => ({
-                    ...prev,
-                    topic_id: value,
-                    topic_title: topic?.title || prev.topic_title
-                  }));
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a topic" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {topics.map((topic) => (
-                      <SelectItem key={topic.id} value={topic.id}>
-                        {topic.title}
+                <label className="text-sm font-medium">Topic *</label>
+                {!showCustomTopic ? (
+                  <Select value={newSession.topic_id} onValueChange={(value) => {
+                    if (value === 'custom') {
+                      setShowCustomTopic(true);
+                      setNewSession(prev => ({
+                        ...prev,
+                        topic_id: '',
+                        topic_title: ''
+                      }));
+                    } else {
+                      const topic = topics.find(t => t.id === value);
+                      setNewSession(prev => ({
+                        ...prev,
+                        topic_id: value,
+                        topic_title: topic?.title || ''
+                      }));
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {topics.map((topic) => (
+                        <SelectItem key={topic.id} value={topic.id}>
+                          {topic.title}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">
+                        ✏️ Create Custom Topic
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Custom Topic (optional)</label>
-                <Input
-                  placeholder="Or enter a custom topic"
-                  value={newSession.topic_title}
-                  onChange={(e) => setNewSession(prev => ({ ...prev, topic_title: e.target.value }))}
-                />
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Enter your custom topic"
+                      value={newSession.topic_title}
+                      onChange={(e) => setNewSession(prev => ({ ...prev, topic_title: e.target.value }))}
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setShowCustomTopic(false);
+                        setNewSession(prev => ({ ...prev, topic_title: '', topic_id: '' }));
+                      }}
+                    >
+                      Back to Topic Selection
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -389,12 +490,16 @@ export const RealGlobalPractice = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Start Time (optional)</label>
+                <label className="text-sm font-medium">Start Time *</label>
                 <Input
                   type="datetime-local"
                   value={newSession.start_time}
                   onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
+                  min={new Date().toISOString().slice(0, 16)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Select when the debate should start
+                </p>
               </div>
 
               <Button onClick={createSession} className="w-full">
@@ -402,6 +507,83 @@ export const RealGlobalPractice = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="attended" className="space-y-4">
+          {attendedSessions.length === 0 ? (
+            <Card className="bg-card/50 backdrop-blur-sm border-border/30">
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">No attended sessions yet. Join some debates to see them here!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {attendedSessions.map((session) => (
+                <Card key={session.id} className="bg-card/50 backdrop-blur-sm border-border/30">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{session.topic_title}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getLevelColor(session.difficulty)}>
+                          {session.difficulty}
+                        </Badge>
+                        {session.winner_user_id === user?.id && (
+                          <Badge className="bg-green-500/20 text-green-300">Won</Badge>
+                        )}
+                        {session.winner_user_id && session.winner_user_id !== user?.id && (
+                          <Badge className="bg-red-500/20 text-red-300">Lost</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={session.creator_profile?.avatar_url} />
+                            <AvatarFallback className="text-xs">
+                              {session.creator_profile?.display_name?.[0] || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">
+                            {session.creator_user_id === user?.id ? 'You' : 
+                             session.creator_profile?.display_name || session.creator_profile?.username}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground">vs</span>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={session.opponent_profile?.avatar_url} />
+                            <AvatarFallback className="text-xs">
+                              {session.opponent_profile?.display_name?.[0] || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">
+                            {session.opponent_user_id === user?.id ? 'You' : 
+                             session.opponent_profile?.display_name || session.opponent_profile?.username}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span>{new Date(session.end_time || session.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Play className="w-3 h-3" />
+                        View Recording
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

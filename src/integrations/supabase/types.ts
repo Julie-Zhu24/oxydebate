@@ -165,11 +165,53 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "practice_matches_creator_user_id_fkey"
+            columns: ["creator_user_id"]
+            isOneToOne: false
+            referencedRelation: "global_rankings"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "practice_matches_creator_user_id_fkey"
+            columns: ["creator_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "practice_matches_opponent_user_id_fkey"
+            columns: ["opponent_user_id"]
+            isOneToOne: false
+            referencedRelation: "global_rankings"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "practice_matches_opponent_user_id_fkey"
+            columns: ["opponent_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "practice_matches_topic_id_fkey"
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_matches_winner_user_id_fkey"
+            columns: ["winner_user_id"]
+            isOneToOne: false
+            referencedRelation: "global_rankings"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "practice_matches_winner_user_id_fkey"
+            columns: ["winner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
