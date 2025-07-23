@@ -63,7 +63,7 @@ export const Posts = () => {
         .from('posts')
         .select(`
           *,
-          profiles!inner(
+          profiles!posts_user_id_fkey(
             display_name,
             username,
             avatar_url
