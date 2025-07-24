@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { JoinSession } from './JoinSession';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 interface PracticeMatch {
   id: string;
@@ -97,7 +98,25 @@ export const RealGlobalPractice = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setMatches((data as any) || []);
+      
+      // Filter out sessions that have expired (2 hours after start time)
+      // Only show expired sessions if user created or joined them
+      const filteredMatches = (data as any)?.filter((match: PracticeMatch) => {
+        if (!match.start_time) return true;
+        
+        const startTime = new Date(match.start_time);
+        const now = new Date();
+        const sessionExpired = now.getTime() - startTime.getTime() > 2 * 60 * 60 * 1000; // 2 hours
+        
+        // If session is expired, only show if user is creator or opponent
+        if (sessionExpired) {
+          return match.creator_user_id === user?.id || match.opponent_user_id === user?.id;
+        }
+        
+        return true;
+      }) || [];
+      
+      setMatches(filteredMatches);
     } catch (error) {
       console.error('Error fetching matches:', error);
       toast({
@@ -146,11 +165,27 @@ export const RealGlobalPractice = () => {
           )
         `)
         .or(`creator_user_id.eq.${user.id},opponent_user_id.eq.${user.id}`)
-        .eq('status', 'completed')
+        .in('status', ['completed', 'active'])
         .order('end_time', { ascending: false });
 
       if (error) throw error;
-      setAttendedSessions((data as any) || []);
+      
+      // Filter to include completed sessions and expired active sessions (2+ hours after start)
+      const attendedSessions = (data as any)?.filter((session: PracticeMatch) => {
+        if (session.status === 'completed') return true;
+        
+        // Check if active session has expired (2+ hours after start)
+        if (session.status === 'active' && session.start_time) {
+          const startTime = new Date(session.start_time);
+          const now = new Date();
+          const sessionExpired = now.getTime() - startTime.getTime() > 2 * 60 * 60 * 1000; // 2 hours
+          return sessionExpired;
+        }
+        
+        return false;
+      }) || [];
+      
+      setAttendedSessions(attendedSessions);
     } catch (error) {
       console.error('Error fetching attended sessions:', error);
     }
@@ -166,13 +201,18 @@ export const RealGlobalPractice = () => {
       return;
     }
 
-    // Check if start time is in the past
-    const startTime = new Date(newSession.start_time);
-    const now = new Date();
-    if (startTime <= now) {
+    // Check if start time is in the past (convert user's local time to Eastern Time)
+    const userLocalTime = new Date(newSession.start_time);
+    
+    // Convert user's selected time (treated as ET) to UTC, then to current user's timezone
+    const easternTimeZone = 'America/New_York';
+    const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
+    const nowInET = toZonedTime(new Date(), easternTimeZone);
+    
+    if (startTimeInET <= nowInET) {
       toast({
         title: "Warning",
-        description: "Start time cannot be in the past. Please select a future time.",
+        description: "Start time cannot be in the past. Please select a future time in Eastern Time.",
         variant: "destructive",
       });
       return;
