@@ -13,7 +13,15 @@ interface PracticeRecord {
   timeUsed: number;
   completed: boolean;
   transcript?: string;
-  feedback?: string;
+  feedback?: {
+    score: number;
+    strengths: string;
+    improvements: string;
+    specific: string;
+    timing: string;
+    timeUsed: string;
+    totalTime: string;
+  };
   saved: boolean;
 }
 
@@ -107,10 +115,38 @@ export const PracticeHistory = ({ onBack }: PracticeHistoryProps) => {
               <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center flex-shrink-0">
                 <Bot className="text-white" size={20} />
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold mb-4">AI Coach Feedback</h3>
-                <div className="text-sm text-muted-foreground whitespace-pre-line">
-                  {selectedPractice.feedback}
+              <div className="flex-1 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">AI Coach Feedback</h3>
+                  <div className="bg-accent/20 rounded-lg px-3 py-1">
+                    <span className="text-sm font-medium text-accent">Score: {selectedPractice.feedback.score}/100</span>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-800 mb-2">Strengths</h4>
+                    <p className="text-sm text-green-700">{selectedPractice.feedback.strengths}</p>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-800 mb-2">Areas for Improvement</h4>
+                    <p className="text-sm text-blue-700">{selectedPractice.feedback.improvements}</p>
+                  </div>
+                  
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 className="font-medium text-purple-800 mb-2">Specific Recommendations</h4>
+                    <p className="text-sm text-purple-700">{selectedPractice.feedback.specific}</p>
+                  </div>
+                  
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <h4 className="font-medium text-orange-800 mb-2">Time Management</h4>
+                    <p className="text-sm text-orange-700 mb-2">{selectedPractice.feedback.timing}</p>
+                    <div className="flex items-center space-x-4 text-xs text-orange-600">
+                      <span>Time Used: <strong>{selectedPractice.feedback.timeUsed}</strong></span>
+                      <span>Total Time: <strong>{selectedPractice.feedback.totalTime}</strong></span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

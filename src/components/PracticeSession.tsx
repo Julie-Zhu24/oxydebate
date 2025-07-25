@@ -533,7 +533,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
                 <h3 className="text-2xl font-bold text-accent">AI Coach Analysis</h3>
                 <div className="flex items-center space-x-2 bg-accent/10 rounded-lg px-4 py-2">
                   <span className="text-sm font-medium text-accent">Overall Score:</span>
-                  <span className="text-2xl font-bold text-accent">{feedback.score}/10</span>
+                  <span className="text-2xl font-bold text-accent">{feedback.score}/100</span>
                 </div>
               </div>
 
