@@ -210,19 +210,19 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
         strengths: "You demonstrated strong analytical skills by systematically addressing opposing arguments. Your use of 'even if' frameworks showed sophisticated defensive strategy.",
         improvements: "Consider spending more time on impact comparison - showing why your rebuttals matter more than their original arguments. Try to allocate roughly 30 seconds per major rebuttal point.",
         specific: "Your rebuttal on innovation was particularly effective because you provided concrete counter-examples. Next time, try to anticipate their likely responses to your rebuttals.",
-        score: 7.5
+        score: 58
       },
       argumentation: {
         strengths: "Your argument structure was clear with distinct claim-warrant-impact chains. Good use of evidence and examples to support your points.",
         improvements: "Work on making your impact links more explicit - explain clearly how your arguments lead to the consequences you claim. Consider using more comparative language.",
         specific: "Your first argument about user protection was well-developed, but you could strengthen it by quantifying the scale of the problem you're solving.",
-        score: 8.0
+        score: 62
       },
       weighing: {
         strengths: "Excellent comparative analysis using magnitude, probability, and timeframe. You clearly established why your impacts matter more.",
         improvements: "Try to engage more directly with their specific impact claims rather than just presenting your own framework. Address why their weighing mechanism is flawed.",
         specific: "Your weighing on magnitude was convincing, but you could have been more explicit about probability - why are your impacts more likely to occur?",
-        score: 7.8
+        score: 60
       }
     };
 
@@ -230,7 +230,7 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
       strengths: "Good overall structure and delivery.",
       improvements: "Focus on clearer signposting and stronger conclusion.",
       specific: "Continue practicing to improve your confidence and flow.",
-      score: 7.0
+      score: 54
     };
 
     const timingFeedback = timePercentage > 95 ? "Excellent time management - you used almost all available time effectively." :
