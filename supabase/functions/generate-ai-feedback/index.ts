@@ -48,14 +48,13 @@ CRITICAL ANALYSIS GUIDELINES:
 - Score based on actual performance, not potential
 - A good debate speech should use most of the allocated time with substantial content
 
-SCORING CRITERIA:
-- 90-100: Exceptional performance with sophisticated arguments and full time usage
-- 80-89: Strong performance with good structure and adequate content
-- 70-79: Adequate performance with some good elements but clear areas to improve
-- 60-69: Below average with significant weaknesses
-- 50-59: Poor performance with major deficiencies  
-- 30-49: Very poor performance, minimal content or effort
-- 0-29: Completely inadequate (too short, no real content, incoherent)
+SCORING CRITERIA (Baseline: 50/100):
+- 75-80: Exceptional performance with sophisticated arguments, clear structure, and excellent time management
+- 65-74: Strong performance with good arguments, decent structure, and adequate time usage
+- 55-64: Above baseline with some good elements but room for improvement
+- 50: BASELINE - Meets basic expectations for the speech type and time allocation
+- 40-49: Below baseline with noticeable weaknesses in content, structure, or timing
+- 30-39: Poor performance with significant deficiencies and minimal effort
 
 Structure your response with:
 1. **Strengths** (only mention what actually exists in the speech)
