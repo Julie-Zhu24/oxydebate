@@ -167,7 +167,15 @@ export const AIPractice = () => {
               <span>Focus Skill</span>
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {skills.map((skill) => (
+              {skills
+                .filter((skill) => {
+                  // Remove rebuttal option for Prime Minister since first speaker doesn't rebut
+                  if (config.speaker === 'PM' && skill.id === 'rebuttal') {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((skill) => (
                 <button
                   key={skill.id}
                   onClick={() => setConfig(prev => ({ ...prev, skill: skill.id }))}

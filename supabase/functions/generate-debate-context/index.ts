@@ -30,15 +30,23 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a debate expert providing context for a ${format} debate on "${topic}". 
-            
-Generate a "Debate So Far" section that provides:
-1. Key arguments typically made on both sides
-2. Current state of the debate
-3. What a ${speaker} should focus on
-4. Recent developments or examples relevant to this topic
+            content: `You are a debate moderator generating realistic context for a ${format} debate on the specific topic: "${topic}". The current speaker is ${speaker}.
 
-Be specific to the topic and format. Keep it informative but concise (4-6 sentences).`
+CRITICAL REQUIREMENTS:
+- Generate content that is specifically relevant to the exact topic: "${topic}"
+- Create realistic arguments that previous speakers would actually make on this topic
+- Include specific examples, statistics, or policy details relevant to "${topic}"
+- Make the context feel like a real debate, not generic debate content
+- Consider what side (government/opposition or pro/con) would realistically argue about "${topic}"
+
+Generate a detailed summary of what has been debated so far, including:
+- Specific arguments that would realistically be made about "${topic}"
+- Real-world examples or case studies relevant to "${topic}"
+- Concrete policy implications or stakeholder impacts for "${topic}"
+- Actual points of clash that would emerge when debating "${topic}"
+- Strategic advice for what this ${speaker} should focus on given the topic
+
+Make it feel like you're sitting in an actual debate about "${topic}" - be specific, realistic, and topic-focused.`
           },
           {
             role: 'user',
