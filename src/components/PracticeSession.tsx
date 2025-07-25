@@ -345,11 +345,16 @@ export const PracticeSession = ({ config, onBack }: PracticeSessionProps) => {
     const scoreMatch = feedbackText.match(/(?:score|rating)[:\s]*(\d+(?:\.\d+)?)/i);
     const score = scoreMatch ? parseFloat(scoreMatch[1]) : 75;
 
+    // Try to parse structured feedback sections
+    const strengthsMatch = feedbackText.match(/\*\*Strengths\*\*\s*([^*]+)/i);
+    const improvementsMatch = feedbackText.match(/\*\*Areas for Improvement\*\*\s*([^*]+)/i);
+    const specificMatch = feedbackText.match(/\*\*Specific Recommendations\*\*\s*([^*]+)/i);
+
     return {
-      score,
-      strengths: feedbackText,
-      improvements: '',
-      specific: '',
+      score: Number(score),
+      strengths: strengthsMatch ? strengthsMatch[1].trim() : feedbackText.split('\n')[0] || "Good effort in your practice session.",
+      improvements: improvementsMatch ? improvementsMatch[1].trim() : "Continue practicing to improve your skills.",
+      specific: specificMatch ? specificMatch[1].trim() : "Focus on your delivery and argument structure.",
       timing: `Used ${formatTime(timeUsed)} of ${formatTime(config.timeLimit * 60)}`,
       timeUsed: formatTime(timeUsed),
       totalTime: formatTime(config.timeLimit * 60)
