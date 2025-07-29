@@ -341,7 +341,8 @@ export const RealGlobalPractice = () => {
     const now = currentTime;
     const diff = start.getTime() - now.getTime();
     
-    return diff <= 5 * 60 * 1000; // Can join 5 minutes before start
+    // Can join 10 minutes before start time and until session starts
+    return diff <= 10 * 60 * 1000 && diff >= 0;
   };
 
   const getLevelColor = (level: string): string => {
