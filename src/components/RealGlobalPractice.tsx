@@ -229,13 +229,14 @@ export const RealGlobalPractice = () => {
     // Convert user's selected time (treated as ET) to UTC, then to current user's timezone
     const easternTimeZone = 'America/New_York';
     const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
-    const nowInET = toZonedTime(new Date(), easternTimeZone);
+    const nowInET = new Date(); // Just use current UTC time
     
     console.log('⏰ TIME VALIDATION DEBUG:', {
       userInputTime: newSession.start_time,
       userLocalTime: userLocalTime.toISOString(),
       startTimeInET: startTimeInET.toISOString(),
       nowInET: nowInET.toISOString(),
+      currentEasternTime: formatInTimeZone(new Date(), easternTimeZone, 'HH:mm'),
       isPast: startTimeInET <= nowInET,
       timeDifferenceMinutes: (startTimeInET.getTime() - nowInET.getTime()) / (1000 * 60)
     });
@@ -245,7 +246,7 @@ export const RealGlobalPractice = () => {
     if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
       toast({
         title: "Warning", 
-        description: `Start time cannot be more than 5 minutes in the past. Please select a future time in Eastern Time. Current ET: ${formatInTimeZone(new Date(), easternTimeZone, 'HH:mm')}`,
+        description: `Start time cannot be more than 5 minutes in the past. Current Eastern Time: ${formatInTimeZone(new Date(), easternTimeZone, 'HH:mm')}`,
         variant: "destructive",
       });
       return;
