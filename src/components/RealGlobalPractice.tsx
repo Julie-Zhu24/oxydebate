@@ -83,7 +83,7 @@ export const RealGlobalPractice = () => {
 
   const fetchMatches = async () => {
     try {
-      console.log('Fetching matches...');
+      console.warn('🔍 FETCHING MATCHES - check this log!');
       const { data, error } = await supabase
         .from('practice_matches')
         .select(`
@@ -214,13 +214,14 @@ export const RealGlobalPractice = () => {
       return;
     }
 
-    console.log('Creating session with data:', {
+    console.log('🚀 CREATING SESSION WITH DATA:', {
       topic_title: newSession.topic_title,
       difficulty: newSession.difficulty,
       start_time: newSession.start_time,
       userLocalTime: new Date(newSession.start_time),
       currentTime: new Date()
     });
+    console.warn('📝 Creating session - check this log!');
 
     // Check if start time is in the past (convert user's local time to Eastern Time)
     const userLocalTime = new Date(newSession.start_time);
