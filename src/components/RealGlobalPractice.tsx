@@ -225,28 +225,31 @@ export const RealGlobalPractice = () => {
 
     // Check if start time is in the past (convert user's local time to Eastern Time)
     const userLocalTime = new Date(newSession.start_time);
-    
-    // Convert user's selected time (treated as ET) to UTC, then to current user's timezone
     const easternTimeZone = 'America/New_York';
+    
+    // Step by step debugging
+    const currentUTC = new Date();
+    const currentEasternTime = toZonedTime(currentUTC, easternTimeZone);
     const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
-    const nowInET = new Date(); // Just use current UTC time
     
-    console.log('⏰ TIME VALIDATION DEBUG:', {
-      userInputTime: newSession.start_time,
-      userLocalTime: userLocalTime.toISOString(),
-      startTimeInET: startTimeInET.toISOString(),
-      nowInET: nowInET.toISOString(),
-      currentEasternTime: formatInTimeZone(new Date(), easternTimeZone, 'HH:mm'),
-      isPast: startTimeInET <= nowInET,
-      timeDifferenceMinutes: (startTimeInET.getTime() - nowInET.getTime()) / (1000 * 60)
-    });
+    console.log('🔍 TIMEZONE DEBUG STEP BY STEP:');
+    console.log('1. User input:', newSession.start_time);
+    console.log('2. Parsed as Date:', userLocalTime.toISOString());
+    console.log('3. Current UTC:', currentUTC.toISOString());
+    console.log('4. Current Eastern (toZonedTime):', currentEasternTime.toISOString());
+    console.log('5. Start time as Eastern (fromZonedTime):', startTimeInET.toISOString());
+    console.log('6. Formatted current ET:', formatInTimeZone(currentUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
     
-    // Allow sessions to be created up to 5 minutes in the past to account for timezone confusion
-    const timeDiff = startTimeInET.getTime() - nowInET.getTime();
+    // Use current Eastern time for comparison
+    const timeDiff = startTimeInET.getTime() - currentUTC.getTime();
+    const timeDiffMinutes = timeDiff / (1000 * 60);
+    
+    console.log('7. Time difference (minutes):', timeDiffMinutes);
+    
     if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
       toast({
         title: "Warning", 
-        description: `Start time cannot be more than 5 minutes in the past. Current Eastern Time: ${formatInTimeZone(new Date(), easternTimeZone, 'HH:mm')}`,
+        description: `Start time cannot be more than 5 minutes in the past. Current Eastern Time: ${formatInTimeZone(currentUTC, easternTimeZone, 'HH:mm')}`,
         variant: "destructive",
       });
       return;
