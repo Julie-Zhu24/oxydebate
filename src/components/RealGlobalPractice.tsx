@@ -227,21 +227,29 @@ export const RealGlobalPractice = () => {
     const easternTimeZone = 'America/New_York';
     const currentUTC = new Date();
     
-    // Parse user's input as Eastern Time (treat the input as if it's already in Eastern timezone)
-    const userInputAsEasternTime = new Date(newSession.start_time + ':00'); // Add seconds if missing
-    const startTimeInUTC = fromZonedTime(userInputAsEasternTime, easternTimeZone);
+    // Create a Date object from the input assuming it's in Eastern Time
+    // We need to manually construct the Eastern time and convert to UTC
+    const [datePart, timePart] = newSession.start_time.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute] = timePart.split(':').map(Number);
     
-    console.log('🔍 FIXED TIMEZONE DEBUG:');
+    // Create date in Eastern timezone and convert to UTC
+    const easternDate = new Date(year, month - 1, day, hour, minute, 0);
+    const startTimeInUTC = fromZonedTime(easternDate, easternTimeZone);
+    
+    console.log('🔍 CORRECTED TIMEZONE DEBUG:');
     console.log('1. User input:', newSession.start_time);
     console.log('2. Current UTC:', currentUTC.toISOString());
     console.log('3. Current Eastern formatted:', formatInTimeZone(currentUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
-    console.log('4. User input treated as Eastern:', userInputAsEasternTime.toISOString());
-    console.log('5. User Eastern time converted to UTC:', startTimeInUTC.toISOString());
+    console.log('4. Parsed components - Year:', year, 'Month:', month, 'Day:', day, 'Hour:', hour, 'Minute:', minute);
+    console.log('5. Created Eastern Date:', easternDate.toISOString());
+    console.log('6. Converted to UTC:', startTimeInUTC.toISOString());
+    console.log('7. Verify Eastern time:', formatInTimeZone(startTimeInUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
     
     const timeDiff = startTimeInUTC.getTime() - currentUTC.getTime();
     const timeDiffMinutes = timeDiff / (1000 * 60);
     
-    console.log('6. Time difference (minutes):', timeDiffMinutes);
+    console.log('8. Time difference (minutes):', timeDiffMinutes);
     
     if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
       toast({
