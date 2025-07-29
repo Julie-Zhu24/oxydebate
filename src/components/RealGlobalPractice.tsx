@@ -375,14 +375,12 @@ export const RealGlobalPractice = () => {
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
     
-    console.log('canJoinSession debug:', {
-      startTime,
-      start: start.toISOString(),
-      now: now.toISOString(),
-      diff,
-      diffMinutes,
-      canJoin: diffMinutes >= -15 && diffMinutes <= 60
-    });
+    // Reduced logging - only log once per minute per session
+    const logKey = `${startTime}-${Math.floor(now.getTime() / 60000)}`;
+    if (!(window as any).lastCanJoinLog || (window as any).lastCanJoinLog !== logKey) {
+      console.log('canJoinSession:', { startTime, diffMinutes, canJoin: diffMinutes >= -15 && diffMinutes <= 60 });
+      (window as any).lastCanJoinLog = logKey;
+    }
     
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
@@ -591,7 +589,17 @@ export const RealGlobalPractice = () => {
                 </p>
               </div>
 
-              <Button onClick={createSession} className="w-full">
+              <Button onClick={() => {
+                console.error('🚨 CREATE SESSION BUTTON CLICKED! 🚨');
+                console.log('Form data check:', {
+                  user: !!user,
+                  topic_title: newSession.topic_title,
+                  difficulty: newSession.difficulty,
+                  start_time: newSession.start_time,
+                  showCustomTopic
+                });
+                createSession();
+              }} className="w-full">
                 Create Session
               </Button>
             </CardContent>
