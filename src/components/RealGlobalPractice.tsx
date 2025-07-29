@@ -369,18 +369,19 @@ export const RealGlobalPractice = () => {
     const start = new Date(startTime);
     const now = currentTime;
     const diff = start.getTime() - now.getTime();
+    const diffMinutes = diff / (1000 * 60);
     
     console.log('canJoinSession debug:', {
       startTime,
       start: start.toISOString(),
       now: now.toISOString(),
       diff,
-      diffMinutes: diff / (1000 * 60),
-      canJoin: diff <= 10 * 60 * 1000 && diff >= -5 * 60 * 1000
+      diffMinutes,
+      canJoin: diffMinutes >= -15 && diffMinutes <= 60
     });
     
-    // Can join 10 minutes before start time and up to 5 minutes after session starts
-    return diff <= 10 * 60 * 1000 && diff >= -5 * 60 * 1000;
+    // Can join if session starts within 15 minutes in the past to 1 hour in the future
+    return diffMinutes >= -15 && diffMinutes <= 60;
   };
 
   const getLevelColor = (level: string): string => {
