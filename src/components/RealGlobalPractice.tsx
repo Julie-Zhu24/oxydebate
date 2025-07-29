@@ -83,6 +83,7 @@ export const RealGlobalPractice = () => {
 
   const fetchMatches = async () => {
     try {
+      console.log('Fetching matches...');
       const { data, error } = await supabase
         .from('practice_matches')
         .select(`
@@ -99,6 +100,8 @@ export const RealGlobalPractice = () => {
 
       if (error) throw error;
       
+      console.log('Raw matches data:', data);
+      
       // Filter out sessions that have expired (2 hours after start time)
       // Only show expired sessions if user created or joined them
       const filteredMatches = (data as any)?.filter((match: PracticeMatch) => {
@@ -108,6 +111,15 @@ export const RealGlobalPractice = () => {
         const now = new Date();
         const sessionExpired = now.getTime() - startTime.getTime() > 2 * 60 * 60 * 1000; // 2 hours
         
+        console.log('Session filter check:', {
+          id: match.id,
+          start_time: match.start_time,
+          startTime: startTime.toISOString(),
+          now: now.toISOString(),
+          sessionExpired,
+          isCreatorOrOpponent: match.creator_user_id === user?.id || match.opponent_user_id === user?.id
+        });
+        
         // If session is expired, only show if user is creator or opponent
         if (sessionExpired) {
           return match.creator_user_id === user?.id || match.opponent_user_id === user?.id;
@@ -116,6 +128,7 @@ export const RealGlobalPractice = () => {
         return true;
       }) || [];
       
+      console.log('Filtered matches:', filteredMatches);
       setMatches(filteredMatches);
     } catch (error) {
       console.error('Error fetching matches:', error);
@@ -201,6 +214,14 @@ export const RealGlobalPractice = () => {
       return;
     }
 
+    console.log('Creating session with data:', {
+      topic_title: newSession.topic_title,
+      difficulty: newSession.difficulty,
+      start_time: newSession.start_time,
+      userLocalTime: new Date(newSession.start_time),
+      currentTime: new Date()
+    });
+
     // Check if start time is in the past (convert user's local time to Eastern Time)
     const userLocalTime = new Date(newSession.start_time);
     
@@ -208,6 +229,13 @@ export const RealGlobalPractice = () => {
     const easternTimeZone = 'America/New_York';
     const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
     const nowInET = toZonedTime(new Date(), easternTimeZone);
+    
+    console.log('Time validation:', {
+      userLocalTime: userLocalTime.toISOString(),
+      startTimeInET: startTimeInET.toISOString(),
+      nowInET: nowInET.toISOString(),
+      isPast: startTimeInET <= nowInET
+    });
     
     if (startTimeInET <= nowInET) {
       toast({
