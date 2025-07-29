@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Mic, MicOff, Users, Clock, UserPlus, Gavel, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Mic, MicOff, Users, Clock, UserPlus, Gavel, Volume2, VolumeX, Video, VideoOff } from 'lucide-react';
 
 interface Participant {
   id: string;
@@ -34,6 +34,9 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
   const [transcript, setTranscript] = useState('');
   const [aiJudgment, setAiJudgment] = useState<any>(null);
   const [volume, setVolume] = useState(0.8);
+  const [jitsiApi, setJitsiApi] = useState<any>(null);
+  const [showVideo, setShowVideo] = useState(false);
+  const jitsiContainer = useRef<HTMLDivElement>(null);
 
   const currentUser = participants.find(p => p.name === 'You');
   const isHost = currentUser?.isHost || false;
@@ -85,6 +88,63 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
       setRecognition(recognition);
     }
   }, []);
+
+  // Initialize Jitsi
+  useEffect(() => {
+    const initializeJitsi = () => {
+      if (typeof window !== 'undefined' && (window as any).JitsiMeetExternalAPI && jitsiContainer.current && showVideo) {
+        const roomName = `vpaas-magic-cookie-33efea029781448088cb08c821f698b8/DebatePractice-${sessionId}`;
+        
+        const api = new (window as any).JitsiMeetExternalAPI("8x8.vc", {
+          roomName,
+          parentNode: jitsiContainer.current,
+          width: '100%',
+          height: 400,
+          configOverwrite: {
+            startWithAudioMuted: true,
+            startWithVideoMuted: false,
+            prejoinPageEnabled: false,
+          },
+          interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: [
+              'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+              'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+              'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+              'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+              'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+            ],
+          },
+          jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtMzNlZmVhMDI5NzgxNDQ4MDg4Y2IwOGM4MjFmNjk4YjgvOWNkMGZmLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NTM4MDAyODAsImV4cCI6MTc1MzgwNzQ4MCwibmJmIjoxNzUzODAwMjc1LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtMzNlZmVhMDI5NzgxNDQ4MDg4Y2IwOGM4MjFmNjk4YjgiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOmZhbHNlLCJmaWxlLXVwbG9hZCI6ZmFsc2UsIm91dGJvdW5kLWNhbGwiOmZhbHNlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOmZhbHNlLCJsaXN0LXZpc2l0b3JzIjpmYWxzZSwicmVjb3JkaW5nIjpmYWxzZSwiZmxpcCI6ZmFsc2V9LCJ1c2VyIjp7ImhpZGRlbi1mcm9tLXJlY29yZGVyIjpmYWxzZSwibW9kZXJhdG9yIjp0cnVlLCJuYW1lIjoiVGVzdCBVc2VyIiwiaWQiOiJnb29nbGUtb2F1dGgyfDEwNjgxMDQyNjc0MjIyMjA0NTc2MCIsImF2YXRhciI6IiIsImVtYWlsIjoidGVzdC51c2VyQGNvbXBhbnkuY29tIn19LCJyb29tIjoiKiJ9.xZO1AyUQY9ZQm8-sxTXfsHzbhunb3NA4zB9FrQaCTziggkFd-82yOeOrIcFYhwuRe6zu3EgIK7bZI1nHpLcUXDd2QvomKKvPZrC4q9TLncO01n3IwiNb9uTE9X_rGYf7Rb8CESyTA1s9key_qBy3mW2JS9P-3wt5Ob5mrE3dMWGf88WqLWWZYRJmPqlM83RaNfazpFjvKJIfKebsakIZTjNlRnELHIZm8AgwtMi50mpiR0xwouRzFRu2g56oDQu7e8VP7H1kEfyExgXMjh6Fv6fPHnMFV-hvb6RW0PqmN9olhaT1iBMHqdoXnIrNmr_4enByDdafDyY3DcinSw4DQQ"
+        });
+
+        setJitsiApi(api);
+
+        api.addEventListener('participantJoined', (participant: any) => {
+          console.log('Participant joined:', participant);
+        });
+
+        api.addEventListener('participantLeft', (participant: any) => {
+          console.log('Participant left:', participant);
+        });
+      }
+    };
+
+    if (showVideo) {
+      // Small delay to ensure the container is rendered
+      setTimeout(initializeJitsi, 100);
+    }
+
+    return () => {
+      if (jitsiApi) {
+        jitsiApi.dispose();
+        setJitsiApi(null);
+      }
+    };
+  }, [showVideo, sessionId]);
+
+  const toggleVideo = () => {
+    setShowVideo(!showVideo);
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -250,8 +310,39 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Stage */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Video Conference */}
+          {showVideo && (
+            <div className="bg-card border rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Video Conference</h3>
+                <button
+                  onClick={toggleVideo}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  title="Close video"
+                >
+                  <VideoOff size={20} />
+                </button>
+              </div>
+              <div 
+                ref={jitsiContainer}
+                className="w-full h-96 bg-muted rounded-lg overflow-hidden"
+              />
+            </div>
+          )}
+
           <div className="bg-card border rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4">Debate Stage</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Debate Stage</h3>
+              {!showVideo && (
+                <button
+                  onClick={toggleVideo}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                >
+                  <Video size={16} />
+                  <span>Join Video</span>
+                </button>
+              )}
+            </div>
             
             <div className="grid grid-cols-2 gap-4 mb-6">
               {stageParticipants.map((participant) => (
@@ -309,6 +400,17 @@ export const JoinSession = ({ sessionId, onBack }: JoinSessionProps) => {
                 }`}
               >
                 {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+              </button>
+
+              <button
+                onClick={toggleVideo}
+                className={`p-4 rounded-full transition-colors ${
+                  !showVideo 
+                    ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' 
+                    : 'bg-green-100 text-green-600 hover:bg-green-200'
+                }`}
+              >
+                {!showVideo ? <VideoOff size={24} /> : <Video size={24} />}
               </button>
               
               <div className="flex items-center space-x-2">
