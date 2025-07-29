@@ -375,13 +375,6 @@ export const RealGlobalPractice = () => {
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
     
-    // Reduced logging - only log once per minute per session
-    const logKey = `${startTime}-${Math.floor(now.getTime() / 60000)}`;
-    if (!(window as any).lastCanJoinLog || (window as any).lastCanJoinLog !== logKey) {
-      console.log('canJoinSession:', { startTime, diffMinutes, canJoin: diffMinutes >= -15 && diffMinutes <= 60 });
-      (window as any).lastCanJoinLog = logKey;
-    }
-    
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
   };
