@@ -223,28 +223,25 @@ export const RealGlobalPractice = () => {
     });
     console.warn('📝 Creating session - check this log!');
 
-    // Check if start time is in the past (convert user's local time to Eastern Time)
-    const userLocalTime = new Date(newSession.start_time);
+    // Parse user input as Eastern Time and compare with current Eastern Time
     const easternTimeZone = 'America/New_York';
-    
-    // Step by step debugging
     const currentUTC = new Date();
-    const currentEasternTime = toZonedTime(currentUTC, easternTimeZone);
-    const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
     
-    console.log('🔍 TIMEZONE DEBUG STEP BY STEP:');
+    // Parse user's input as Eastern Time (treat the input as if it's already in Eastern timezone)
+    const userInputAsEasternTime = new Date(newSession.start_time + ':00'); // Add seconds if missing
+    const startTimeInUTC = fromZonedTime(userInputAsEasternTime, easternTimeZone);
+    
+    console.log('🔍 FIXED TIMEZONE DEBUG:');
     console.log('1. User input:', newSession.start_time);
-    console.log('2. Parsed as Date:', userLocalTime.toISOString());
-    console.log('3. Current UTC:', currentUTC.toISOString());
-    console.log('4. Current Eastern (toZonedTime):', currentEasternTime.toISOString());
-    console.log('5. Start time as Eastern (fromZonedTime):', startTimeInET.toISOString());
-    console.log('6. Formatted current ET:', formatInTimeZone(currentUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
+    console.log('2. Current UTC:', currentUTC.toISOString());
+    console.log('3. Current Eastern formatted:', formatInTimeZone(currentUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
+    console.log('4. User input treated as Eastern:', userInputAsEasternTime.toISOString());
+    console.log('5. User Eastern time converted to UTC:', startTimeInUTC.toISOString());
     
-    // Use current Eastern time for comparison
-    const timeDiff = startTimeInET.getTime() - currentUTC.getTime();
+    const timeDiff = startTimeInUTC.getTime() - currentUTC.getTime();
     const timeDiffMinutes = timeDiff / (1000 * 60);
     
-    console.log('7. Time difference (minutes):', timeDiffMinutes);
+    console.log('6. Time difference (minutes):', timeDiffMinutes);
     
     if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
       toast({
