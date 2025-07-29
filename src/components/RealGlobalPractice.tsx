@@ -447,12 +447,17 @@ export const RealGlobalPractice = () => {
                       </div>
                       
                       <Button
-                        onClick={() => joinSession(session.id)}
-                        disabled={!canJoinSession(session.start_time) || session.creator_user_id === user?.id}
+                        onClick={() => {
+                          console.log('Join button clicked for session:', session.id);
+                          console.log('Can join session:', canJoinSession(session.start_time));
+                          console.log('Is creator:', session.creator_user_id === user?.id);
+                          joinSession(session.id);
+                        }}
+                        disabled={!canJoinSession(session.start_time)}
                         className="gap-2"
                       >
                         <Play className="w-4 h-4" />
-                        Join Session
+                        {session.creator_user_id === user?.id ? 'Start Session' : 'Join Session'}
                       </Button>
                     </div>
                   </CardContent>
