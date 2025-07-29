@@ -231,17 +231,21 @@ export const RealGlobalPractice = () => {
     const startTimeInET = fromZonedTime(userLocalTime, easternTimeZone);
     const nowInET = toZonedTime(new Date(), easternTimeZone);
     
-    console.log('Time validation:', {
+    console.log('⏰ TIME VALIDATION DEBUG:', {
+      userInputTime: newSession.start_time,
       userLocalTime: userLocalTime.toISOString(),
       startTimeInET: startTimeInET.toISOString(),
       nowInET: nowInET.toISOString(),
-      isPast: startTimeInET <= nowInET
+      isPast: startTimeInET <= nowInET,
+      timeDifferenceMinutes: (startTimeInET.getTime() - nowInET.getTime()) / (1000 * 60)
     });
     
-    if (startTimeInET <= nowInET) {
+    // Allow sessions to be created up to 5 minutes in the past to account for timezone confusion
+    const timeDiff = startTimeInET.getTime() - nowInET.getTime();
+    if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
       toast({
-        title: "Warning",
-        description: "Start time cannot be in the past. Please select a future time in Eastern Time.",
+        title: "Warning", 
+        description: `Start time cannot be more than 5 minutes in the past. Please select a future time in Eastern Time. Current ET: ${formatInTimeZone(new Date(), easternTimeZone, 'HH:mm')}`,
         variant: "destructive",
       });
       return;
