@@ -382,10 +382,18 @@ export const RealGlobalPractice = () => {
   const canJoinSession = (startTime?: string): boolean => {
     if (!startTime) return true;
     
+    // startTime is stored in UTC, currentTime should also be UTC for comparison
     const start = new Date(startTime);
-    const now = currentTime;
+    const now = new Date(); // Always use UTC for comparison
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
+    
+    console.log('🔍 JOIN SESSION CHECK:', {
+      startTimeUTC: start.toISOString(),
+      currentUTC: now.toISOString(),
+      diffMinutes,
+      canJoin: diffMinutes >= -15 && diffMinutes <= 60
+    });
     
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
