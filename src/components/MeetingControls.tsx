@@ -71,9 +71,9 @@ export const MeetingControls = ({
 
     loadInitialState();
     
-    // Then set up real-time subscription
+    // Then set up real-time subscription with improved channel name
     const channel = supabase
-      .channel(`timer-sync-${sessionId}`)
+      .channel(`practice-match-timer:${sessionId}`)
       .on(
         'postgres_changes',
         {
@@ -83,27 +83,34 @@ export const MeetingControls = ({
           filter: `id=eq.${sessionId}`
         },
         (payload) => {
-          console.log('Timer update received:', payload);
+          console.log('REALTIME: Timer update received by', isHost ? 'HOST' : 'PARTICIPANT', ':', payload);
           const newData = payload.new as any;
           
           const newDuration = newData.timer_duration_seconds || 0;
           const newRemaining = newData.timer_remaining_seconds || 0;
           const newRunning = newData.timer_is_running || false;
           
-          console.log('Updating timer state from realtime:', { newDuration, newRemaining, newRunning });
+          console.log('REALTIME: Updating timer state from realtime:', { 
+            newDuration, 
+            newRemaining, 
+            newRunning,
+            isHost: isHost ? 'HOST' : 'PARTICIPANT'
+          });
           
           setTimerDuration(newDuration);
           setTimerRemaining(newRemaining);
           setIsTimerRunning(newRunning);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('REALTIME: Channel subscription status:', status, 'for', isHost ? 'HOST' : 'PARTICIPANT');
+      });
 
     return () => {
-      console.log('Cleaning up timer sync');
+      console.log('Cleaning up timer sync for', isHost ? 'HOST' : 'PARTICIPANT');
       supabase.removeChannel(channel);
     };
-  }, [sessionId]);
+  }, [sessionId, isHost]);
 
   // Remove the duplicate load initial timer state effect since it's now in the sync effect
 
