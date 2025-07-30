@@ -294,7 +294,7 @@ export const RealGlobalPractice = () => {
           topic_id: topicId || null,
           topic_title: newSession.topic_title,
           difficulty: newSession.difficulty,
-          start_time: newSession.start_time,
+          start_time: startTimeInUTC.toISOString(),
           status: 'waiting'
         });
 
