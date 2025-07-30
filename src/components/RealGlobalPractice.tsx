@@ -504,7 +504,9 @@ export const RealGlobalPractice = () => {
                           });
                           if (isCreator) {
                             console.log('🔍 CREATOR STARTING SESSION');
+                            console.log('🔍 SETTING JOINED SESSION ID TO:', session.id);
                             setJoinedSessionId(session.id);
+                            console.log('🔍 JOINED SESSION ID SET, should navigate to JoinSession component');
                           } else {
                             console.log('🔍 OPPONENT JOINING SESSION');
                             joinSession(session.id);
