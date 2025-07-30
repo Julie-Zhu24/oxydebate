@@ -379,7 +379,7 @@ export const RealGlobalPractice = () => {
     return `${minutes}m`;
   };
 
-  const canJoinSession = (startTime?: string): boolean => {
+  const canJoinSession = (startTime?: string, isCreator: boolean = false): boolean => {
     if (!startTime) return true;
     
     // startTime is stored in UTC, currentTime should also be UTC for comparison
@@ -387,6 +387,20 @@ export const RealGlobalPractice = () => {
     const now = new Date(); // Always use UTC for comparison
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
+    
+    console.log('🔍 CAN JOIN SESSION CHECK:', {
+      startTime,
+      startTimeUTC: start.toISOString(),
+      currentUTC: now.toISOString(),
+      diffMinutes,
+      isCreator,
+      result: isCreator ? diffMinutes >= -120 : (diffMinutes >= -15 && diffMinutes <= 60)
+    });
+    
+    // Creators can start sessions up to 2 hours late, others can only join within normal window
+    if (isCreator) {
+      return diffMinutes >= -120; // Creators can start up to 2 hours late
+    }
     
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
@@ -486,16 +500,17 @@ export const RealGlobalPractice = () => {
                       
                       <Button
                         onClick={() => {
+                          const isCreator = session.creator_user_id === user?.id;
                           console.log('🔍 START/JOIN SESSION CLICKED:', {
                             sessionId: session.id,
-                            canJoin: canJoinSession(session.start_time),
-                            isCreator: session.creator_user_id === user?.id,
+                            canJoin: canJoinSession(session.start_time, isCreator),
+                            isCreator,
                             userId: user?.id,
                             creatorId: session.creator_user_id,
                             startTime: session.start_time,
-                            buttonDisabled: !canJoinSession(session.start_time)
+                            buttonDisabled: !canJoinSession(session.start_time, isCreator)
                           });
-                          if (session.creator_user_id === user?.id) {
+                          if (isCreator) {
                             console.log('🔍 CREATOR STARTING SESSION');
                             setJoinedSessionId(session.id);
                           } else {
@@ -503,11 +518,11 @@ export const RealGlobalPractice = () => {
                             joinSession(session.id);
                           }
                         }}
-                        disabled={!canJoinSession(session.start_time)}
+                        disabled={!canJoinSession(session.start_time, session.creator_user_id === user?.id)}
                         className="gap-2 hover:bg-primary/90 transition-colors"
                         style={{ 
-                          backgroundColor: !canJoinSession(session.start_time) ? '#666' : '',
-                          cursor: !canJoinSession(session.start_time) ? 'not-allowed' : 'pointer'
+                          backgroundColor: !canJoinSession(session.start_time, session.creator_user_id === user?.id) ? '#666' : '',
+                          cursor: !canJoinSession(session.start_time, session.creator_user_id === user?.id) ? 'not-allowed' : 'pointer'
                         }}
                       >
                         <Play className="w-4 h-4" />
