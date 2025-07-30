@@ -48,7 +48,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       return;
     }
 
-    const initializeJitsi = () => {
+    const initializeJitsi = async () => {
       if (typeof window !== 'undefined' && (window as any).JitsiMeetExternalAPI && jitsiContainer.current && profile) {
         const roomName = `vpaas-magic-cookie-33efea029781448088cb08c821f698b8/DebatePractice-${sessionId}`;
         
@@ -56,66 +56,86 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
         const displayName = profile.display_name || profile.username || 'Anonymous';
         const userNameWithRole = isHost ? `${displayName} (Host)` : displayName;
         
-        const api = new (window as any).JitsiMeetExternalAPI("8x8.vc", {
-          roomName,
-          parentNode: jitsiContainer.current,
-          width: '100%',
-          height: '100%',
-          userInfo: {
-            displayName: userNameWithRole,
-            email: profile.user_id + '@debate.app'
-          },
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            enableWelcomePage: false,
-            enableUserRolesBasedOnToken: false,
-            // Give host moderation capabilities
-            moderatedRoomServiceUrl: isHost ? undefined : null,
-          },
-          interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: isHost ? [
-              'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-              'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-              'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-              'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
-              'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
-              'mute-video-everyone'
-            ] : [
-              'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-              'fodeviceselection', 'hangup', 'profile', 'chat', 
-              'videoquality', 'filmstrip', 'settings', 'raisehand',
-              'tileview', 'videobackgroundblur'
-            ],
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            DEFAULT_BACKGROUND: '#000000'
-          },
-          jwt: "eyJraWQiOiJ2cGFhcy1tYWdpYy1jb29raWUtMzNlZmVhMDI5NzgxNDQ4MDg4Y2IwOGM4MjFmNjk4YjgvOWNkMGZmLVNBTVBMRV9BUFAiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJqaXRzaSIsImlzcyI6ImNoYXQiLCJpYXQiOjE3NTM4NTY5MzQsImV4cCI6MTc1Mzg2NDEzNCwibmJmIjoxNzUzODU2OTI5LCJzdWIiOiJ2cGFhcy1tYWdpYy1jb29raWUtMzNlZmVhMDI5NzgxNDQ4MDg4Y2IwOGM4MjFmNjk4YjgiLCJjb250ZXh0Ijp7ImZlYXR1cmVzIjp7ImxpdmVzdHJlYW1pbmciOmZhbHNlLCJmaWxlLXVwbG9hZCI6ZmFsc2UsIm91dGJvdW5kLWNhbGwiOmZhbHNlLCJzaXAtb3V0Ym91bmQtY2FsbCI6ZmFsc2UsInRyYW5zY3JpcHRpb24iOmZhbHNlLCJsaXN0LXZpc2l0b3JzIjpmYWxzZSwicmVjb3JkaW5nIjpmYWxzZSwiZmxpcCI6ZmFsc2V9LCJ1c2VyIjp7ImhpZGRlbi1mcm9tLXJlY29yZGVyIjpmYWxzZSwibW9kZXJhdG9yIjp0cnVlLCJuYW1lIjoiVGVzdCBVc2VyIiwiaWQiOiJnb29nbGUtb2F1dGgyfDEwNjgxMDQyNjc0MjIyMjA0NTc2MCIsImF2YXRhciI6IiIsImVtYWlsIjoidGVzdC51c2VyQGNvbXBhbnkuY29tIn19LCJyb29tIjoiKiJ9.zRLOjUstqdUBga_FBDYDirpX7VgLW_UOpIGV6uJ1hXqJVkItlOfIMGL3Qn9cjyyHWG-vveZu-V3v5pAnM9oBbR-g4FlSYQSzJeJwSF9Vr1cjRvNspwX_nheXPMjHprcpw0vAFTsnS-jkzHh_XcDTvNcIlbQBJ6RfsuXo98RMjeBG8hYyOvdM6cr6BNVmoI1YMwsonS-z_eQYVtJEs6mif_dTkhK-ScrR0ev2iZy-DDponmP3ntLL8edsu4qOSwlRFM63yb6fQmFvVyXxz_o9sJVfHcwA5DGa6o8rx4U-lr8YfDFhfoNHOQPFKvaCSxat1k_mt19TROuMNJKLnyLiIA"
-        });
+        try {
+          // Generate fresh JWT token
+          const { data: jwtData, error: jwtError } = await supabase.functions.invoke('generate-jitsi-jwt', {
+            body: {
+              roomName,
+              userName: displayName,
+              userEmail: profile.user_id + '@debate.app',
+              isHost: isHost,
+              userId: profile.user_id
+            }
+          });
 
-        setJitsiApi(api);
+          if (jwtError || !jwtData?.jwt) {
+            console.error('Failed to generate JWT:', jwtError);
+            return;
+          }
 
-        // Handle participant events
-        api.addEventListener('participantJoined', (participant: any) => {
-          console.log('Participant joined:', participant);
-        });
+          const api = new (window as any).JitsiMeetExternalAPI("8x8.vc", {
+            roomName,
+            parentNode: jitsiContainer.current,
+            width: '100%',
+            height: '100%',
+            userInfo: {
+              displayName: userNameWithRole,
+              email: profile.user_id + '@debate.app'
+            },
+            configOverwrite: {
+              startWithAudioMuted: false,
+              startWithVideoMuted: false,
+              prejoinPageEnabled: false,
+              enableWelcomePage: false,
+              enableUserRolesBasedOnToken: false,
+              // Give host moderation capabilities
+              moderatedRoomServiceUrl: isHost ? undefined : null,
+            },
+            interfaceConfigOverwrite: {
+              TOOLBAR_BUTTONS: isHost ? [
+                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+                'videoquality', 'filmstrip', 'invite', 'feedback', 'stats', 'shortcuts',
+                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
+                'mute-video-everyone'
+              ] : [
+                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                'fodeviceselection', 'hangup', 'profile', 'chat', 
+                'videoquality', 'filmstrip', 'settings', 'raisehand',
+                'tileview', 'videobackgroundblur'
+              ],
+              SHOW_JITSI_WATERMARK: false,
+              SHOW_WATERMARK_FOR_GUESTS: false,
+              DEFAULT_BACKGROUND: '#000000'
+            },
+            jwt: jwtData.jwt
+          });
 
-        api.addEventListener('participantLeft', (participant: any) => {
-          console.log('Participant left:', participant);
-        });
+          setJitsiApi(api);
 
-        // Handle when user leaves the meeting
-        api.addEventListener('videoConferenceLeft', () => {
-          console.log('User left the conference');
-          onBack();
-        });
+          // Handle participant events
+          api.addEventListener('participantJoined', (participant: any) => {
+            console.log('Participant joined:', participant);
+          });
 
-        // Handle when room is ready
-        api.addEventListener('videoConferenceJoined', () => {
-          console.log('Successfully joined conference');
-        });
+          api.addEventListener('participantLeft', (participant: any) => {
+            console.log('Participant left:', participant);
+          });
+
+          // Handle when user leaves the meeting
+          api.addEventListener('videoConferenceLeft', () => {
+            console.log('User left the conference');
+            onBack();
+          });
+
+          // Handle when room is ready
+          api.addEventListener('videoConferenceJoined', () => {
+            console.log('Successfully joined conference');
+          });
+        } catch (error) {
+          console.error('Error initializing Jitsi:', error);
+        }
       }
     };
 
