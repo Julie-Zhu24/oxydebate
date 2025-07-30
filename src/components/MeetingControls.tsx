@@ -44,8 +44,36 @@ export const MeetingControls = ({
   useEffect(() => {
     console.log('Setting up timer sync for session:', sessionId);
     
+    // First load initial state
+    const loadInitialState = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('practice_matches')
+          .select('timer_duration_seconds, timer_remaining_seconds, timer_is_running')
+          .eq('id', sessionId)
+          .single();
+
+        if (error) {
+          console.error('Error loading initial timer state:', error);
+          return;
+        }
+
+        if (data) {
+          console.log('Setting initial timer state:', data);
+          setTimerDuration(data.timer_duration_seconds || 0);
+          setTimerRemaining(data.timer_remaining_seconds || 0);
+          setIsTimerRunning(data.timer_is_running || false);
+        }
+      } catch (error) {
+        console.error('Error loading initial timer state:', error);
+      }
+    };
+
+    loadInitialState();
+    
+    // Then set up real-time subscription
     const channel = supabase
-      .channel('timer-sync')
+      .channel(`timer-sync-${sessionId}`)
       .on(
         'postgres_changes',
         {
@@ -62,7 +90,7 @@ export const MeetingControls = ({
           const newRemaining = newData.timer_remaining_seconds || 0;
           const newRunning = newData.timer_is_running || false;
           
-          console.log('Updating timer state:', { newDuration, newRemaining, newRunning });
+          console.log('Updating timer state from realtime:', { newDuration, newRemaining, newRunning });
           
           setTimerDuration(newDuration);
           setTimerRemaining(newRemaining);
@@ -77,36 +105,7 @@ export const MeetingControls = ({
     };
   }, [sessionId]);
 
-  // Load initial timer state
-  useEffect(() => {
-    const loadTimerState = async () => {
-      console.log('Loading initial timer state for session:', sessionId);
-      
-      try {
-        const { data, error } = await supabase
-          .from('practice_matches')
-          .select('timer_duration_seconds, timer_remaining_seconds, timer_is_running')
-          .eq('id', sessionId)
-          .single();
-
-        if (error) {
-          console.error('Error loading timer state:', error);
-          return;
-        }
-
-        if (data) {
-          console.log('Initial timer state loaded:', data);
-          setTimerDuration(data.timer_duration_seconds || 0);
-          setTimerRemaining(data.timer_remaining_seconds || 0);
-          setIsTimerRunning(data.timer_is_running || false);
-        }
-      } catch (error) {
-        console.error('Error loading timer state:', error);
-      }
-    };
-
-    loadTimerState();
-  }, [sessionId]);
+  // Remove the duplicate load initial timer state effect since it's now in the sync effect
 
   // Timer countdown effect
   useEffect(() => {
@@ -198,6 +197,12 @@ export const MeetingControls = ({
 
     try {
       console.log('Updating timer in database for session:', sessionId);
+      
+      // Update local state immediately for responsiveness
+      setTimerDuration(totalSeconds);
+      setTimerRemaining(totalSeconds);
+      setIsTimerRunning(false);
+      
       const { data, error } = await supabase
         .from('practice_matches')
         .update({
