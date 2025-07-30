@@ -382,16 +382,17 @@ export const RealGlobalPractice = () => {
   const canJoinSession = (startTime?: string, isCreator: boolean = false): boolean => {
     if (!startTime) return true;
     
+    // Creators can always start their sessions (for now)
+    if (isCreator) {
+      console.log('🔍 CREATOR CAN ALWAYS START');
+      return true;
+    }
+    
     // startTime is stored in UTC, currentTime should also be UTC for comparison
     const start = new Date(startTime);
     const now = new Date(); // Always use UTC for comparison
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
-    
-    // Creators can start sessions up to 2 hours late, others can only join within normal window
-    if (isCreator) {
-      return diffMinutes >= -120; // Creators can start up to 2 hours late
-    }
     
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
