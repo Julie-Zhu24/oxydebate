@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Pause, RotateCcw, Users, Trophy } from 'lucide-react';
+import { Play, Pause, RotateCcw, Users, Trophy, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface MeetingControlsProps {
   isHost: boolean;
@@ -22,8 +24,12 @@ export const MeetingControls = ({
   onResultSubmission 
 }: MeetingControlsProps) => {
   // Timer state
-  const [time, setTime] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
+  const [timerDuration, setTimerDuration] = useState(5 * 60); // Default 5 minutes
+  const [timerRemaining, setTimerRemaining] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [showTimerDialog, setShowTimerDialog] = useState(false);
+  const [minutes, setMinutes] = useState('5');
+  const [seconds, setSeconds] = useState('0');
   
   // Speaker assignment state
   const [showSpeakerDialog, setShowSpeakerDialog] = useState(false);
@@ -34,16 +40,113 @@ export const MeetingControls = ({
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [selectedResult, setSelectedResult] = useState<'prop_wins' | 'opp_wins' | 'tie' | null>(null);
 
-  // Timer effect
+  // Timer real-time sync
+  useEffect(() => {
+    const channel = supabase
+      .channel('timer-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'practice_matches',
+          filter: `id=eq.${sessionId}`
+        },
+        (payload) => {
+          console.log('Timer update received:', payload);
+          const newData = payload.new as any;
+          setTimerDuration(newData.timer_duration_seconds || 0);
+          setTimerRemaining(newData.timer_remaining_seconds || 0);
+          setIsTimerRunning(newData.timer_is_running || false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
+  // Load initial timer state
+  useEffect(() => {
+    const loadTimerState = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('practice_matches')
+          .select('timer_duration_seconds, timer_remaining_seconds, timer_is_running')
+          .eq('id', sessionId)
+          .single();
+
+        if (error) {
+          console.error('Error loading timer state:', error);
+          return;
+        }
+
+        if (data) {
+          setTimerDuration(data.timer_duration_seconds || 0);
+          setTimerRemaining(data.timer_remaining_seconds || 0);
+          setIsTimerRunning(data.timer_is_running || false);
+        }
+      } catch (error) {
+        console.error('Error loading timer state:', error);
+      }
+    };
+
+    loadTimerState();
+  }, [sessionId]);
+
+  // Timer countdown effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isRunning) {
-      interval = setInterval(() => {
-        setTime(prevTime => prevTime + 1);
+    
+    if (isTimerRunning && timerRemaining > 0) {
+      interval = setInterval(async () => {
+        const newRemaining = timerRemaining - 1;
+        
+        if (isHost) {
+          // Update database from host
+          await supabase
+            .from('practice_matches')
+            .update({
+              timer_remaining_seconds: newRemaining,
+              timer_is_running: newRemaining > 0,
+              timer_updated_at: new Date().toISOString()
+            })
+            .eq('id', sessionId);
+        }
+
+        // Play bell sound when timer reaches zero
+        if (newRemaining === 0) {
+          console.log('Timer finished - playing bell sound');
+          // Create audio context and play bell sound
+          try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+            
+            toast({
+              title: "Time's Up!",
+              description: "The timer has reached zero.",
+            });
+          } catch (error) {
+            console.error('Error playing bell sound:', error);
+          }
+        }
       }, 1000);
     }
+    
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isTimerRunning, timerRemaining, isHost, sessionId]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -51,11 +154,93 @@ export const MeetingControls = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStartTimer = () => setIsRunning(true);
-  const handlePauseTimer = () => setIsRunning(false);
-  const handleResetTimer = () => {
-    setIsRunning(false);
-    setTime(0);
+  const handleSetTimer = async () => {
+    const totalSeconds = parseInt(minutes) * 60 + parseInt(seconds);
+    if (totalSeconds <= 0) {
+      toast({
+        title: "Invalid Time",
+        description: "Please set a valid time duration.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('practice_matches')
+        .update({
+          timer_duration_seconds: totalSeconds,
+          timer_remaining_seconds: totalSeconds,
+          timer_is_running: false,
+          timer_updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+
+      setShowTimerDialog(false);
+      toast({
+        title: "Timer Set",
+        description: `Timer set to ${formatTime(totalSeconds)}`,
+      });
+    } catch (error) {
+      console.error('Error setting timer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set timer",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleStartTimer = async () => {
+    if (timerRemaining <= 0) {
+      toast({
+        title: "No Time Set",
+        description: "Please set a timer duration first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('practice_matches')
+        .update({
+          timer_is_running: true,
+          timer_updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+    } catch (error) {
+      console.error('Error starting timer:', error);
+    }
+  };
+
+  const handlePauseTimer = async () => {
+    try {
+      await supabase
+        .from('practice_matches')
+        .update({
+          timer_is_running: false,
+          timer_updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+    } catch (error) {
+      console.error('Error pausing timer:', error);
+    }
+  };
+
+  const handleResetTimer = async () => {
+    try {
+      await supabase
+        .from('practice_matches')
+        .update({
+          timer_remaining_seconds: timerDuration,
+          timer_is_running: false,
+          timer_updated_at: new Date().toISOString()
+        })
+        .eq('id', sessionId);
+    } catch (error) {
+      console.error('Error resetting timer:', error);
+    }
   };
 
   const handleSpeakerSubmit = () => {
@@ -81,8 +266,9 @@ export const MeetingControls = ({
       <div className="flex items-center gap-4">
         {/* Timer Display - Visible to everyone */}
         <div className="flex items-center gap-2">
-          <div className="text-lg font-mono font-bold min-w-[60px]">
-            {formatTime(time)}
+          <Clock className="w-4 h-4" />
+          <div className={`text-lg font-mono font-bold min-w-[60px] ${timerRemaining <= 10 && timerRemaining > 0 ? 'text-red-500' : ''}`}>
+            {formatTime(timerRemaining)}
           </div>
         </div>
 
@@ -93,11 +279,59 @@ export const MeetingControls = ({
             
             {/* Timer Controls */}
             <div className="flex items-center gap-2">
+              <Dialog open={showTimerDialog} onOpenChange={setShowTimerDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Set Timer
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Set Timer Duration</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <Label htmlFor="minutes">Minutes</Label>
+                      <Input
+                        id="minutes"
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={minutes}
+                        onChange={(e) => setMinutes(e.target.value)}
+                        className="w-20"
+                      />
+                    </div>
+                    <span className="mt-6">:</span>
+                    <div>
+                      <Label htmlFor="seconds">Seconds</Label>
+                      <Input
+                        id="seconds"
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={seconds}
+                        onChange={(e) => setSeconds(e.target.value)}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setShowTimerDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSetTimer}>
+                      Set Timer
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleStartTimer}
-                disabled={isRunning}
+                disabled={isTimerRunning || timerRemaining <= 0}
               >
                 <Play className="w-4 h-4" />
               </Button>
@@ -105,7 +339,7 @@ export const MeetingControls = ({
                 variant="outline"
                 size="sm"
                 onClick={handlePauseTimer}
-                disabled={!isRunning}
+                disabled={!isTimerRunning}
               >
                 <Pause className="w-4 h-4" />
               </Button>
@@ -113,6 +347,7 @@ export const MeetingControls = ({
                 variant="outline"
                 size="sm"
                 onClick={handleResetTimer}
+                disabled={timerDuration <= 0}
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>

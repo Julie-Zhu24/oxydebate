@@ -133,6 +133,10 @@ export type Database = {
           result: string | null
           start_time: string | null
           status: string
+          timer_duration_seconds: number | null
+          timer_is_running: boolean | null
+          timer_remaining_seconds: number | null
+          timer_updated_at: string | null
           topic_id: string | null
           topic_title: string
           updated_at: string
@@ -150,6 +154,10 @@ export type Database = {
           result?: string | null
           start_time?: string | null
           status?: string
+          timer_duration_seconds?: number | null
+          timer_is_running?: boolean | null
+          timer_remaining_seconds?: number | null
+          timer_updated_at?: string | null
           topic_id?: string | null
           topic_title: string
           updated_at?: string
@@ -167,6 +175,10 @@ export type Database = {
           result?: string | null
           start_time?: string | null
           status?: string
+          timer_duration_seconds?: number | null
+          timer_is_running?: boolean | null
+          timer_remaining_seconds?: number | null
+          timer_updated_at?: string | null
           topic_id?: string | null
           topic_title?: string
           updated_at?: string
