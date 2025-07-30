@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Clock, Users, Globe, Star, Calendar, Play } from 'lucide-react';
+import { Clock, Users, Globe, Star, Calendar, Play, Trash2, Edit3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +58,8 @@ export const RealGlobalPractice = () => {
   const [joinedSessionId, setJoinedSessionId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showCustomTopic, setShowCustomTopic] = useState(false);
+  const [rescheduleSessionId, setRescheduleSessionId] = useState<string | null>(null);
+  const [rescheduleTime, setRescheduleTime] = useState('');
   
   // Create session form
   const [newSession, setNewSession] = useState({
@@ -435,6 +438,100 @@ export const RealGlobalPractice = () => {
     }
   };
 
+  const canDeleteSession = (startTime?: string): boolean => {
+    if (!startTime) return false;
+    const start = new Date(startTime);
+    const now = new Date();
+    const timeDiff = start.getTime() - now.getTime();
+    const hoursDiff = timeDiff / (1000 * 60 * 60);
+    return hoursDiff >= 1; // Can delete 1 hour before start
+  };
+
+  const canRescheduleSession = (startTime?: string): boolean => {
+    if (!startTime) return false;
+    const start = new Date(startTime);
+    const now = new Date();
+    const timeDiff = start.getTime() - now.getTime();
+    const minutesDiff = timeDiff / (1000 * 60);
+    return minutesDiff >= 10; // Can reschedule 10 minutes before start
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('practice_matches')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Session deleted successfully",
+      });
+
+      fetchMatches();
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete session",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const rescheduleSession = async () => {
+    if (!rescheduleSessionId || !rescheduleTime) return;
+
+    try {
+      // Parse reschedule time similar to create session
+      const easternTimeZone = 'America/New_York';
+      const currentUTC = new Date();
+      
+      const [datePart, timePart] = rescheduleTime.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour, minute] = timePart.split(':').map(Number);
+      
+      const easternTimeDate = new Date(year, month - 1, day, hour, minute, 0);
+      const startTimeInUTC = fromZonedTime(easternTimeDate, easternTimeZone);
+      
+      const timeDiff = startTimeInUTC.getTime() - currentUTC.getTime();
+      
+      if (timeDiff < -5 * 60 * 1000) { // More than 5 minutes in the past
+        toast({
+          title: "Warning", 
+          description: `Start time cannot be more than 5 minutes in the past. Current Eastern Time: ${formatInTimeZone(currentUTC, easternTimeZone, 'HH:mm')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('practice_matches')
+        .update({ start_time: startTimeInUTC.toISOString() })
+        .eq('id', rescheduleSessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Session rescheduled successfully",
+      });
+
+      setRescheduleSessionId(null);
+      setRescheduleTime('');
+      fetchMatches();
+    } catch (error) {
+      console.error('Error rescheduling session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reschedule session",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (joinedSessionId) {
     // Check if current user is the creator/host
     const currentSession = matches.find(m => m.id === joinedSessionId);
@@ -523,39 +620,116 @@ export const RealGlobalPractice = () => {
                         </div>
                       </div>
                       
-                      <Button
-                        onClick={() => {
-                          const isCreator = session.creator_user_id === user?.id;
-                          console.log('🔍 START/JOIN SESSION CLICKED:', {
-                            sessionId: session.id,
-                            canJoin: canJoinSession(session.start_time, isCreator, session.status),
-                            isCreator,
-                            userId: user?.id,
-                            creatorId: session.creator_user_id,
-                            startTime: session.start_time,
-                            sessionStatus: session.status,
-                            buttonDisabled: !canJoinSession(session.start_time, isCreator, session.status)
-                          });
-                          if (isCreator) {
-                            console.log('🔍 CREATOR STARTING SESSION');
-                            console.log('🔍 SETTING JOINED SESSION ID TO:', session.id);
-                            setJoinedSessionId(session.id);
-                            console.log('🔍 JOINED SESSION ID SET, should navigate to JoinSession component');
-                          } else {
-                            console.log('🔍 OPPONENT JOINING SESSION');
-                            joinSession(session.id);
-                          }
-                        }}
-                        disabled={!canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status)}
-                        className="gap-2 hover:bg-primary/90 transition-colors"
-                        style={{ 
-                          backgroundColor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? '#666' : '',
-                          cursor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        <Play className="w-4 h-4" />
-                        {session.creator_user_id === user?.id ? 'Start Session' : 'Join Session'}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {/* Host management buttons */}
+                        {session.creator_user_id === user?.id && session.status === 'waiting' && !session.opponent_user_id && (
+                          <>
+                            {canDeleteSession(session.start_time) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => deleteSession(session.id)}
+                                className="gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </Button>
+                            )}
+                            {canRescheduleSession(session.start_time) && (
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => {
+                                      setRescheduleSessionId(session.id);
+                                      // Pre-fill with current time
+                                      if (session.start_time) {
+                                        const easternTimeZone = 'America/New_York';
+                                        const currentTime = formatInTimeZone(new Date(session.start_time), easternTimeZone, "yyyy-MM-dd'T'HH:mm");
+                                        setRescheduleTime(currentTime);
+                                      }
+                                    }}
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                    Reschedule
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Reschedule Session</DialogTitle>
+                                  </DialogHeader>
+                                  <div className="space-y-4">
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium">New Start Time</label>
+                                      <Input
+                                        type="datetime-local"
+                                        value={rescheduleTime}
+                                        onChange={(e) => setRescheduleTime(e.target.value)}
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        All times are in Eastern Time (ET).
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-2 justify-end">
+                                      <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                          setRescheduleSessionId(null);
+                                          setRescheduleTime('');
+                                        }}
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        onClick={rescheduleSession}
+                                        disabled={!rescheduleTime}
+                                      >
+                                        Reschedule
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </>
+                        )}
+                        
+                        <Button
+                          onClick={() => {
+                            const isCreator = session.creator_user_id === user?.id;
+                            console.log('🔍 START/JOIN SESSION CLICKED:', {
+                              sessionId: session.id,
+                              canJoin: canJoinSession(session.start_time, isCreator, session.status),
+                              isCreator,
+                              userId: user?.id,
+                              creatorId: session.creator_user_id,
+                              startTime: session.start_time,
+                              sessionStatus: session.status,
+                              buttonDisabled: !canJoinSession(session.start_time, isCreator, session.status)
+                            });
+                            if (isCreator) {
+                              console.log('🔍 CREATOR STARTING SESSION');
+                              console.log('🔍 SETTING JOINED SESSION ID TO:', session.id);
+                              setJoinedSessionId(session.id);
+                              console.log('🔍 JOINED SESSION ID SET, should navigate to JoinSession component');
+                            } else {
+                              console.log('🔍 OPPONENT JOINING SESSION');
+                              joinSession(session.id);
+                            }
+                          }}
+                          disabled={!canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status)}
+                          className="gap-2 hover:bg-primary/90 transition-colors"
+                          style={{ 
+                            backgroundColor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? '#666' : '',
+                            cursor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <Play className="w-4 h-4" />
+                          {session.creator_user_id === user?.id ? 'Start Session' : 'Join Session'}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
