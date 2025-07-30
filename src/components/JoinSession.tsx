@@ -3,6 +3,8 @@ import { ArrowLeft, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { MeetingControls } from './MeetingControls';
+import { useToast } from '@/hooks/use-toast';
 
 interface JoinSessionProps {
   sessionId: string;
@@ -12,9 +14,59 @@ interface JoinSessionProps {
 
 export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionProps) => {
   const { profile } = useAuth();
+  const { toast } = useToast();
   const [jitsiApi, setJitsiApi] = useState<any>(null);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const jitsiContainer = useRef<HTMLDivElement>(null);
+
+  const handleSpeakerAssignment = async (propSpeakers: string[], oppSpeakers: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('practice_matches')
+        .update({ 
+          prop_speakers: propSpeakers.filter(s => s.trim() !== ''),
+          opp_speakers: oppSpeakers.filter(s => s.trim() !== '')
+        })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Speaker assignments saved",
+      });
+    } catch (error) {
+      console.error('Error saving speaker assignments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save speaker assignments",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResultSubmission = async (result: 'prop_wins' | 'opp_wins' | 'tie') => {
+    try {
+      const { error } = await supabase
+        .from('practice_matches')
+        .update({ result })
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Debate result recorded",
+      });
+    } catch (error) {
+      console.error('Error saving result:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save result",
+        variant: "destructive",
+      });
+    }
+  };
 
   const endSession = async () => {
     try {
@@ -179,6 +231,14 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       <div 
         ref={jitsiContainer}
         className="w-full h-screen"
+      />
+
+      {/* Meeting Controls - Overlay on top of video */}
+      <MeetingControls
+        isHost={isHost}
+        sessionId={sessionId}
+        onSpeakerAssignment={handleSpeakerAssignment}
+        onResultSubmission={handleResultSubmission}
       />
 
       {/* Bottom controls - End Session button for host - below the meeting area */}

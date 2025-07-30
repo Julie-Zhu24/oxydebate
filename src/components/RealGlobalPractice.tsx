@@ -459,18 +459,29 @@ export const RealGlobalPractice = () => {
 
   const deleteSession = async (sessionId: string) => {
     try {
+      console.log('🗑️ Attempting to delete session:', sessionId);
+      
       const { error } = await supabase
         .from('practice_matches')
         .delete()
         .eq('id', sessionId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Delete error:', error);
+        throw error;
+      }
+
+      console.log('✅ Session deleted successfully');
+      
+      // Immediately remove from local state to update UI
+      setMatches(prev => prev.filter(match => match.id !== sessionId));
 
       toast({
         title: "Success",
         description: "Session deleted successfully",
       });
 
+      // Also refresh from server to ensure consistency
       fetchMatches();
     } catch (error) {
       console.error('Error deleting session:', error);

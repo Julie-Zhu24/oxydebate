@@ -127,7 +127,10 @@ export type Database = {
           difficulty: string
           end_time: string | null
           id: string
+          opp_speakers: string[] | null
           opponent_user_id: string | null
+          prop_speakers: string[] | null
+          result: string | null
           start_time: string | null
           status: string
           topic_id: string | null
@@ -141,7 +144,10 @@ export type Database = {
           difficulty?: string
           end_time?: string | null
           id?: string
+          opp_speakers?: string[] | null
           opponent_user_id?: string | null
+          prop_speakers?: string[] | null
+          result?: string | null
           start_time?: string | null
           status?: string
           topic_id?: string | null
@@ -155,7 +161,10 @@ export type Database = {
           difficulty?: string
           end_time?: string | null
           id?: string
+          opp_speakers?: string[] | null
           opponent_user_id?: string | null
+          prop_speakers?: string[] | null
+          result?: string | null
           start_time?: string | null
           status?: string
           topic_id?: string | null
