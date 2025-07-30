@@ -382,9 +382,7 @@ export const RealGlobalPractice = () => {
   const canJoinSession = (startTime?: string, isCreator: boolean = false): boolean => {
     if (!startTime) return true;
     
-    // Creators can always start their sessions (for now)
     if (isCreator) {
-      console.log('🔍 CREATOR CAN ALWAYS START');
       return true;
     }
     
