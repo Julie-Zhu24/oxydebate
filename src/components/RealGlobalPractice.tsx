@@ -408,10 +408,15 @@ export const RealGlobalPractice = () => {
   };
 
   if (joinedSessionId) {
+    // Check if current user is the creator/host
+    const currentSession = matches.find(m => m.id === joinedSessionId);
+    const isHost = currentSession?.creator_user_id === user?.id;
+    
     return (
       <JoinSession 
         sessionId={joinedSessionId}
         onBack={() => setJoinedSessionId(null)}
+        isHost={isHost}
       />
     );
   }
