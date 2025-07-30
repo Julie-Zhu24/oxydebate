@@ -162,7 +162,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
   }
 
   return (
-    <div className="h-screen flex flex-col bg-black">
+    <div className="min-h-screen flex flex-col bg-black">
       {/* Header with back button only */}
       <div className="absolute top-4 left-4 z-10">
         <Button
@@ -178,20 +178,22 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       {/* Full-screen video conference */}
       <div 
         ref={jitsiContainer}
-        className="flex-1 w-full h-full"
+        className="flex-1 w-full h-screen"
       />
 
-      {/* Bottom controls - End Session button for host */}
+      {/* Bottom controls - End Session button for host - below the meeting area */}
       {isHost && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-          <Button
-            variant="destructive"
-            onClick={endSession}
-            className="flex items-center space-x-2 bg-red-600/90 hover:bg-red-600 text-white px-6 py-3"
-          >
-            <Crown size={20} />
-            <span>End Session</span>
-          </Button>
+        <div className="w-full py-8 px-4 bg-black">
+          <div className="flex justify-start">
+            <Button
+              variant="destructive"
+              onClick={endSession}
+              className="flex items-center space-x-2 bg-red-600/90 hover:bg-red-600 text-white px-6 py-3"
+            >
+              <Crown size={20} />
+              <span>End Session</span>
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -406,8 +406,11 @@ export const RealGlobalPractice = () => {
     return `${minutes}m`;
   };
 
-  const canJoinSession = (startTime?: string, isCreator: boolean = false): boolean => {
+  const canJoinSession = (startTime?: string, isCreator: boolean = false, sessionStatus?: string): boolean => {
     if (!startTime) return true;
+    
+    // Disable buttons for completed sessions
+    if (sessionStatus === 'completed') return false;
     
     if (isCreator) {
       return true;
@@ -525,12 +528,13 @@ export const RealGlobalPractice = () => {
                           const isCreator = session.creator_user_id === user?.id;
                           console.log('🔍 START/JOIN SESSION CLICKED:', {
                             sessionId: session.id,
-                            canJoin: canJoinSession(session.start_time, isCreator),
+                            canJoin: canJoinSession(session.start_time, isCreator, session.status),
                             isCreator,
                             userId: user?.id,
                             creatorId: session.creator_user_id,
                             startTime: session.start_time,
-                            buttonDisabled: !canJoinSession(session.start_time, isCreator)
+                            sessionStatus: session.status,
+                            buttonDisabled: !canJoinSession(session.start_time, isCreator, session.status)
                           });
                           if (isCreator) {
                             console.log('🔍 CREATOR STARTING SESSION');
@@ -542,11 +546,11 @@ export const RealGlobalPractice = () => {
                             joinSession(session.id);
                           }
                         }}
-                        disabled={!canJoinSession(session.start_time, session.creator_user_id === user?.id)}
+                        disabled={!canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status)}
                         className="gap-2 hover:bg-primary/90 transition-colors"
                         style={{ 
-                          backgroundColor: !canJoinSession(session.start_time, session.creator_user_id === user?.id) ? '#666' : '',
-                          cursor: !canJoinSession(session.start_time, session.creator_user_id === user?.id) ? 'not-allowed' : 'pointer'
+                          backgroundColor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? '#666' : '',
+                          cursor: !canJoinSession(session.start_time, session.creator_user_id === user?.id, session.status) ? 'not-allowed' : 'pointer'
                         }}
                       >
                         <Play className="w-4 h-4" />
