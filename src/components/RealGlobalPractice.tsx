@@ -388,13 +388,6 @@ export const RealGlobalPractice = () => {
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
     
-    console.log('🔍 JOIN SESSION CHECK:', {
-      startTimeUTC: start.toISOString(),
-      currentUTC: now.toISOString(),
-      diffMinutes,
-      canJoin: diffMinutes >= -15 && diffMinutes <= 60
-    });
-    
     // Can join if session starts within 15 minutes in the past to 1 hour in the future
     return diffMinutes >= -15 && diffMinutes <= 60;
   };
