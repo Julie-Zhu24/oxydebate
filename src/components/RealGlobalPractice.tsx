@@ -584,7 +584,6 @@ export const RealGlobalPractice = () => {
                   type="datetime-local"
                   value={newSession.start_time}
                   onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
-                  min={new Date().toISOString().slice(0, 16)}
                 />
                 <p className="text-xs text-muted-foreground">
                   All times are in Eastern Time (ET). Select when the debate should start.
