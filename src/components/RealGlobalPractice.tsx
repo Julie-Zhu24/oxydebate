@@ -388,15 +388,6 @@ export const RealGlobalPractice = () => {
     const diff = start.getTime() - now.getTime();
     const diffMinutes = diff / (1000 * 60);
     
-    console.log('🔍 CAN JOIN SESSION CHECK:', {
-      startTime,
-      startTimeUTC: start.toISOString(),
-      currentUTC: now.toISOString(),
-      diffMinutes,
-      isCreator,
-      result: isCreator ? diffMinutes >= -120 : (diffMinutes >= -15 && diffMinutes <= 60)
-    });
-    
     // Creators can start sessions up to 2 hours late, others can only join within normal window
     if (isCreator) {
       return diffMinutes >= -120; // Creators can start up to 2 hours late
