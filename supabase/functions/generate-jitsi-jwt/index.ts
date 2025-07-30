@@ -81,8 +81,8 @@ urZKTiaRuqT99mme4zu+VA==
     // Create JWT payload
     const now = Math.floor(Date.now() / 1000);
     const payload: Payload = {
-      iss: APP_ID,
-      aud: APP_ID,
+      iss: "chat",
+      aud: "jitsi",
       exp: now + 7200, // 2 hours
       nbf: now - 10,   // 10 seconds ago
       sub: APP_ID,
