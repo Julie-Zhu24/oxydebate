@@ -486,10 +486,20 @@ export const RealGlobalPractice = () => {
                       
                       <Button
                         onClick={() => {
-                          console.log('Join button clicked for session:', session.id);
-                          console.log('Can join session:', canJoinSession(session.start_time));
-                          console.log('Is creator:', session.creator_user_id === user?.id);
-                          joinSession(session.id);
+                          console.log('🔍 START/JOIN SESSION CLICKED:', {
+                            sessionId: session.id,
+                            canJoin: canJoinSession(session.start_time),
+                            isCreator: session.creator_user_id === user?.id,
+                            userId: user?.id,
+                            creatorId: session.creator_user_id
+                          });
+                          if (session.creator_user_id === user?.id) {
+                            console.log('🔍 CREATOR STARTING SESSION');
+                            setJoinedSessionId(session.id);
+                          } else {
+                            console.log('🔍 OPPONENT JOINING SESSION');
+                            joinSession(session.id);
+                          }
                         }}
                         disabled={!canJoinSession(session.start_time)}
                         className="gap-2"
