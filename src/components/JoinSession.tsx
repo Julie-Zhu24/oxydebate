@@ -43,6 +43,11 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
 
   // Initialize Jitsi Meet automatically when component loads
   useEffect(() => {
+    // Prevent multiple initializations
+    if (jitsiApi) {
+      return;
+    }
+
     const initializeJitsi = () => {
       if (typeof window !== 'undefined' && (window as any).JitsiMeetExternalAPI && jitsiContainer.current && profile) {
         const roomName = `vpaas-magic-cookie-33efea029781448088cb08c821f698b8/DebatePractice-${sessionId}`;
@@ -125,7 +130,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
         setJitsiApi(null);
       }
     };
-  }, [sessionId, onBack, profile, isHost]);
+  }, []); // Remove all dependencies to prevent re-initialization
 
   if (isSessionEnded) {
     return (
