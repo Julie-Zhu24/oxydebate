@@ -227,30 +227,26 @@ export const RealGlobalPractice = () => {
     const easternTimeZone = 'America/New_York';
     const currentUTC = new Date();
     
-    // Parse the datetime string as if it represents Eastern Time
-    // Format: "2025-07-29T23:49" -> treat as "2025-07-29 23:49 Eastern"
-    const dateTimeString = newSession.start_time.replace('T', ' '); // "2025-07-29 23:49"
-    
-    // Create a date object in UTC timezone, then use fromZonedTime to treat it as Eastern
+    // Parse the user input and treat it as Eastern Time
+    // User enters "2025-07-29T23:48" meaning "23:48 Eastern Time on July 29th"
     const [datePart, timePart] = newSession.start_time.split('T');
-    const easternDateTimeString = `${datePart} ${timePart}:00`; // Add seconds
-    
-    // Create a temporary date to parse the components, but we'll use fromZonedTime properly
-    const tempDate = new Date(`${easternDateTimeString}Z`); // Parse as UTC first
     const [year, month, day] = datePart.split('-').map(Number);
     const [hour, minute] = timePart.split(':').map(Number);
     
-    // Create the date in Eastern timezone by using UTC as base then converting
-    // This treats the input time as if it were Eastern time
-    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
-    const startTimeInUTC = fromZonedTime(utcDate, easternTimeZone);
+    // Create a date object representing the time components (this will be in local timezone by default)
+    // But we'll treat these components as if they represent Eastern Time
+    const easternTimeDate = new Date(year, month - 1, day, hour, minute, 0);
     
-    console.log('🔍 FINAL TIMEZONE DEBUG:');
+    // Now use fromZonedTime to convert this Eastern time to UTC
+    // fromZonedTime treats the input date as being in the specified timezone
+    const startTimeInUTC = fromZonedTime(easternTimeDate, easternTimeZone);
+    
+    console.log('🔍 CORRECT TIMEZONE CONVERSION:');
     console.log('1. User input:', newSession.start_time);
     console.log('2. Current UTC:', currentUTC.toISOString());
     console.log('3. Current Eastern formatted:', formatInTimeZone(currentUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
-    console.log('4. Parsed as UTC components:', utcDate.toISOString());
-    console.log('5. Treated as Eastern, converted to UTC:', startTimeInUTC.toISOString());
+    console.log('4. Created local date object:', easternTimeDate.toISOString(), '(ignoring timezone)');
+    console.log('5. Treating as Eastern, converted to UTC:', startTimeInUTC.toISOString());
     console.log('6. Verify back to Eastern:', formatInTimeZone(startTimeInUTC, easternTimeZone, 'yyyy-MM-dd HH:mm:ss zzz'));
     
     const timeDiff = startTimeInUTC.getTime() - currentUTC.getTime();
