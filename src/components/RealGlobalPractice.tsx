@@ -593,14 +593,17 @@ export const RealGlobalPractice = () => {
                 </p>
               </div>
 
-              <Button onClick={() => {
+              <Button 
+                disabled={!newSession.topic_title || !newSession.difficulty || !newSession.start_time}
+                onClick={() => {
                 console.error('🚨 CREATE SESSION BUTTON CLICKED! 🚨');
                 console.log('Form data check:', {
                   user: !!user,
                   topic_title: newSession.topic_title,
                   difficulty: newSession.difficulty,
                   start_time: newSession.start_time,
-                  showCustomTopic
+                  showCustomTopic,
+                  buttonDisabled: !newSession.topic_title || !newSession.difficulty || !newSession.start_time
                 });
                 createSession();
               }} className="w-full">
