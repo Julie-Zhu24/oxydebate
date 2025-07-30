@@ -120,9 +120,9 @@ export const RealGlobalPractice = () => {
           isCreatorOrOpponent: match.creator_user_id === user?.id || match.opponent_user_id === user?.id
         });
         
-        // If session is expired, only show if user is creator or opponent
+        // If session is expired (2+ hours after start), don't show it
         if (sessionExpired) {
-          return match.creator_user_id === user?.id || match.opponent_user_id === user?.id;
+          return false;
         }
         
         return true;
