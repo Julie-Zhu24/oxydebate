@@ -109,18 +109,28 @@ export const MeetingControls = ({
 
   // Timer countdown effect
   useEffect(() => {
+    console.log('COUNTDOWN EFFECT TRIGGERED:', { 
+      isTimerRunning, 
+      timerRemaining, 
+      isHost,
+      sessionId,
+      effectTimestamp: new Date().toISOString()
+    });
+    
     let interval: NodeJS.Timeout;
     
-    console.log('Timer effect triggered:', { isTimerRunning, timerRemaining, isHost });
-    
     if (isTimerRunning && timerRemaining > 0) {
+      console.log('STARTING COUNTDOWN INTERVAL');
       interval = setInterval(async () => {
-        console.log('Timer tick - remaining:', timerRemaining);
+        console.log('COUNTDOWN TICK - remaining:', timerRemaining);
         const newRemaining = timerRemaining - 1;
+        
+        // Update local state for immediate UI update
+        setTimerRemaining(newRemaining);
+        console.log('Local countdown update: newRemaining =', newRemaining);
         
         if (isHost) {
           console.log('Host updating timer in database:', newRemaining);
-          // Update database from host
           try {
             const { error } = await supabase
               .from('practice_matches')
@@ -133,6 +143,8 @@ export const MeetingControls = ({
               
             if (error) {
               console.error('Error updating timer:', error);
+            } else {
+              console.log('Database updated successfully with remaining:', newRemaining);
             }
           } catch (error) {
             console.error('Error updating timer:', error);
@@ -167,10 +179,17 @@ export const MeetingControls = ({
           }
         }
       }, 1000);
+    } else {
+      console.log('COUNTDOWN NOT STARTING because:', {
+        isTimerRunning,
+        timerRemaining,
+        reason: !isTimerRunning ? 'timer not running' : 'no time remaining'
+      });
     }
     
     return () => {
       if (interval) {
+        console.log('CLEARING COUNTDOWN INTERVAL');
         clearInterval(interval);
       }
     };
@@ -237,9 +256,15 @@ export const MeetingControls = ({
   };
 
   const handleStartTimer = async () => {
-    console.log('Starting timer - current state:', { timerRemaining, timerDuration });
+    console.log('START BUTTON CLICKED - current state:', { 
+      timerRemaining, 
+      timerDuration, 
+      isTimerRunning,
+      sessionId 
+    });
     
     if (timerRemaining <= 0) {
+      console.log('START BLOCKED: No time remaining');
       toast({
         title: "No Time Set",
         description: "Please set a timer duration first.",
@@ -250,6 +275,11 @@ export const MeetingControls = ({
 
     try {
       console.log('Starting timer in database for session:', sessionId);
+      
+      // Update local state immediately
+      setIsTimerRunning(true);
+      console.log('Local state updated: isTimerRunning = true');
+      
       const { error } = await supabase
         .from('practice_matches')
         .update({
@@ -260,10 +290,12 @@ export const MeetingControls = ({
 
       if (error) {
         console.error('Error starting timer:', error);
+        // Revert local state on error
+        setIsTimerRunning(false);
         throw error;
       }
       
-      console.log('Timer started successfully');
+      console.log('Timer started successfully in database');
     } catch (error) {
       console.error('Error starting timer:', error);
       toast({
@@ -275,22 +307,53 @@ export const MeetingControls = ({
   };
 
   const handlePauseTimer = async () => {
+    console.log('PAUSE BUTTON CLICKED - current state:', { 
+      timerRemaining, 
+      isTimerRunning,
+      sessionId 
+    });
+    
     try {
-      await supabase
+      // Update local state immediately
+      setIsTimerRunning(false);
+      console.log('Local state updated: isTimerRunning = false');
+      
+      const { error } = await supabase
         .from('practice_matches')
         .update({
           timer_is_running: false,
           timer_updated_at: new Date().toISOString()
         })
         .eq('id', sessionId);
+        
+      if (error) {
+        console.error('Error pausing timer:', error);
+        // Revert local state on error
+        setIsTimerRunning(true);
+        throw error;
+      }
+      
+      console.log('Timer paused successfully');
     } catch (error) {
       console.error('Error pausing timer:', error);
     }
   };
 
   const handleResetTimer = async () => {
+    console.log('RESET BUTTON CLICKED - current state:', { 
+      timerRemaining, 
+      timerDuration,
+      isTimerRunning,
+      sessionId 
+    });
+    
     try {
-      await supabase
+      // Update local state immediately
+      setTimerRemaining(timerDuration);
+      setIsTimerRunning(false);
+      console.log('Local state updated: timerRemaining =', timerDuration, 'isTimerRunning = false');
+      
+      const { error } = await supabase
         .from('practice_matches')
         .update({
           timer_remaining_seconds: timerDuration,
@@ -298,6 +361,13 @@ export const MeetingControls = ({
           timer_updated_at: new Date().toISOString()
         })
         .eq('id', sessionId);
+        
+      if (error) {
+        console.error('Error resetting timer:', error);
+        throw error;
+      }
+      
+      console.log('Timer reset successfully');
     } catch (error) {
       console.error('Error resetting timer:', error);
     }
