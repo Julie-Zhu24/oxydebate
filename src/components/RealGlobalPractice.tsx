@@ -491,7 +491,9 @@ export const RealGlobalPractice = () => {
                             canJoin: canJoinSession(session.start_time),
                             isCreator: session.creator_user_id === user?.id,
                             userId: user?.id,
-                            creatorId: session.creator_user_id
+                            creatorId: session.creator_user_id,
+                            startTime: session.start_time,
+                            buttonDisabled: !canJoinSession(session.start_time)
                           });
                           if (session.creator_user_id === user?.id) {
                             console.log('🔍 CREATOR STARTING SESSION');
@@ -502,7 +504,11 @@ export const RealGlobalPractice = () => {
                           }
                         }}
                         disabled={!canJoinSession(session.start_time)}
-                        className="gap-2"
+                        className="gap-2 hover:bg-primary/90 transition-colors"
+                        style={{ 
+                          backgroundColor: !canJoinSession(session.start_time) ? '#666' : '',
+                          cursor: !canJoinSession(session.start_time) ? 'not-allowed' : 'pointer'
+                        }}
                       >
                         <Play className="w-4 h-4" />
                         {session.creator_user_id === user?.id ? 'Start Session' : 'Join Session'}
