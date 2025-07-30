@@ -87,9 +87,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
               startWithVideoMuted: false,
               prejoinPageEnabled: false,
               enableWelcomePage: false,
-              enableUserRolesBasedOnToken: false,
-              // Give host moderation capabilities
-              moderatedRoomServiceUrl: isHost ? undefined : null,
+              enableUserRolesBasedOnToken: true,
             },
             interfaceConfigOverwrite: {
               TOOLBAR_BUTTONS: isHost ? [
