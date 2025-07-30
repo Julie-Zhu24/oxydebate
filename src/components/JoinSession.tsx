@@ -150,7 +150,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
         setJitsiApi(null);
       }
     };
-  }, []); // Remove all dependencies to prevent re-initialization
+  }, [profile]); // Trigger when profile loads
 
   if (isSessionEnded) {
     return (
