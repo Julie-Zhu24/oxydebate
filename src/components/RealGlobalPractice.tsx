@@ -102,6 +102,33 @@ export const RealGlobalPractice = () => {
       
       console.log('Raw matches data:', data);
       
+      // Auto-end expired sessions that are still active/waiting
+      const sessionsToAutoEnd = (data as any)?.filter((match: PracticeMatch) => {
+        if (!match.start_time) return false;
+        const startTime = new Date(match.start_time);
+        const now = new Date();
+        const sessionExpired = now.getTime() - startTime.getTime() > 2 * 60 * 60 * 1000; // 2 hours
+        return sessionExpired && (match.status === 'active' || match.status === 'waiting') && match.opponent_user_id;
+      }) || [];
+
+      // Auto-end expired sessions with participants
+      if (sessionsToAutoEnd.length > 0) {
+        try {
+          for (const session of sessionsToAutoEnd) {
+            await supabase
+              .from('practice_matches')
+              .update({ 
+                status: 'completed',
+                end_time: new Date().toISOString()
+              })
+              .eq('id', session.id);
+          }
+          console.log(`Auto-ended ${sessionsToAutoEnd.length} expired sessions`);
+        } catch (error) {
+          console.error('Error auto-ending sessions:', error);
+        }
+      }
+
       // Filter out sessions that have expired (2 hours after start time)
       // Only show expired sessions if user created or joined them
       const filteredMatches = (data as any)?.filter((match: PracticeMatch) => {
