@@ -130,6 +130,7 @@ export type Database = {
           opp_speakers: string[] | null
           opponent_user_id: string | null
           prop_speakers: string[] | null
+          recording_url: string | null
           result: string | null
           start_time: string | null
           status: string
@@ -151,6 +152,7 @@ export type Database = {
           opp_speakers?: string[] | null
           opponent_user_id?: string | null
           prop_speakers?: string[] | null
+          recording_url?: string | null
           result?: string | null
           start_time?: string | null
           status?: string
@@ -172,6 +174,7 @@ export type Database = {
           opp_speakers?: string[] | null
           opponent_user_id?: string | null
           prop_speakers?: string[] | null
+          recording_url?: string | null
           result?: string | null
           start_time?: string | null
           status?: string
