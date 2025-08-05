@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, MessageCircle, Share2, Play, Pause, Mic, Square, Upload } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Pause, Mic, Square, Upload, Download } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -45,13 +45,27 @@ export const Posts = () => {
     tags: '',
     post_type: 'text'
   });
+  // Audio recording states
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  
+  // Audio playback states
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  
+  // UI states
   const [showComments, setShowComments] = useState<string | null>(null);
   const [newComment, setNewComment] = useState('');
   const [comments, setComments] = useState<{[postId: string]: any[]}>({});
+  const [uploading, setUploading] = useState(false);
+  
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -103,30 +117,125 @@ export const Posts = () => {
     }
   };
 
+  // Cleanup function
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+    };
+  }, [stream, currentAudio]);
+
+  // Recording functions
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      if (!MediaRecorder.isTypeSupported('audio/webm')) {
+        toast({
+          title: "Error",
+          description: "Your browser doesn't support audio recording",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const userStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      setStream(userStream);
+      
+      const recorder = new MediaRecorder(userStream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
       const chunks: BlobPart[] = [];
 
       recorder.ondataavailable = (e) => {
-        chunks.push(e.data);
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
         setAudioBlob(blob);
-        stream.getTracks().forEach(track => track.stop());
+        userStream.getTracks().forEach(track => track.stop());
+        setStream(null);
+        
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
       };
 
-      recorder.start();
+      recorder.onstart = () => {
+        setRecordingTime(0);
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+      };
+
+      recorder.onpause = () => {
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+      };
+
+      recorder.onresume = () => {
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingTime(prev => prev + 1);
+        }, 1000);
+      };
+
+      recorder.start(1000); // Collect data every second
       setMediaRecorder(recorder);
       setIsRecording(true);
+      setIsPaused(false);
+      
+      toast({
+        title: "Recording started",
+        description: "Speak into your microphone",
+      });
+      
     } catch (error) {
+      console.error('Error starting recording:', error);
       toast({
         title: "Error",
-        description: "Could not access microphone",
+        description: "Could not access microphone. Please check permissions.",
         variant: "destructive",
+      });
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.pause();
+      setIsPaused(true);
+      toast({
+        title: "Recording paused",
+        description: "Click resume to continue",
+      });
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'paused') {
+      mediaRecorder.resume();
+      setIsPaused(false);
+      toast({
+        title: "Recording resumed",
+        description: "Continue speaking",
       });
     }
   };
@@ -135,21 +244,119 @@ export const Posts = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
       setIsRecording(false);
+      setIsPaused(false);
       setMediaRecorder(null);
+      setRecordingTime(0);
+      
+      toast({
+        title: "Recording stopped",
+        description: "Your audio is ready to upload",
+      });
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setIsPaused(false);
+      setMediaRecorder(null);
+      setRecordingTime(0);
+      setAudioBlob(null);
+      
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        setStream(null);
+      }
+      
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  // File upload functions
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith('audio/')) {
+        setAudioBlob(file);
+        toast({
+          title: "Audio file loaded",
+          description: `Loaded ${file.name}`,
+        });
+      } else {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an audio file",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const uploadAudioToStorage = async (audioBlob: Blob): Promise<string | null> => {
+    try {
+      setUploading(true);
+      const fileName = `${user!.id}/${Date.now()}.webm`;
+      
+      const { data, error } = await supabase.storage
+        .from('audio-posts')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('audio-posts')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading audio:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to upload audio file",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
     }
   };
 
   const createPost = async () => {
     if (!user || !newPost.title.trim() || !newPost.content.trim()) return;
+    
+    if (newPost.post_type === 'audio' && !audioBlob) {
+      toast({
+        title: "Audio Required",
+        description: "Please record or upload an audio file",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setCreating(true);
     try {
       let audioUrl = null;
       
       if (newPost.post_type === 'audio' && audioBlob) {
-        // Upload audio file to Supabase Storage (would need storage bucket setup)
-        // For now, we'll just indicate it's an audio post
-        audioUrl = 'placeholder-audio-url';
+        audioUrl = await uploadAudioToStorage(audioBlob);
+        if (!audioUrl) {
+          // Upload failed, don't create the post
+          return;
+        }
       }
 
       const { error } = await supabase
@@ -175,6 +382,7 @@ export const Posts = () => {
       setAudioBlob(null);
       fetchPosts();
     } catch (error) {
+      console.error('Error creating post:', error);
       toast({
         title: "Error",
         description: "Failed to create post",
@@ -319,13 +527,14 @@ export const Posts = () => {
   };
 
   const playAudio = async (audioUrl: string, postId: string) => {
+    // Stop current playing audio if any
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+
     if (playingAudio === postId) {
-      // Stop current audio
-      const audioElements = document.querySelectorAll('audio');
-      audioElements.forEach(audio => {
-        audio.pause();
-        audio.currentTime = 0;
-      });
       setPlayingAudio(null);
       return;
     }
@@ -333,41 +542,46 @@ export const Posts = () => {
     try {
       setPlayingAudio(postId);
       
-      // For now, create a simple audio element for testing
-      // In a real implementation, you would use the actual audio URL from storage
-      const audio = new Audio();
+      const audio = new Audio(audioUrl);
+      setCurrentAudio(audio);
       
-      // Generate a simple test tone for demonstration
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 2);
-      
-      setTimeout(() => {
+      audio.onended = () => {
         setPlayingAudio(null);
-        audioContext.close();
-      }, 2000);
+        setCurrentAudio(null);
+      };
+      
+      audio.onerror = () => {
+        console.error('Error loading audio file');
+        setPlayingAudio(null);
+        setCurrentAudio(null);
+        toast({
+          title: "Error",
+          description: "Could not load audio file",
+          variant: "destructive",
+        });
+      };
+      
+      await audio.play();
       
     } catch (error) {
       console.error('Error playing audio:', error);
       setPlayingAudio(null);
+      setCurrentAudio(null);
       toast({
         title: "Error",
         description: "Could not play audio",
         variant: "destructive",
       });
     }
+  };
+
+  const downloadAudio = (audioUrl: string, postTitle: string) => {
+    const link = document.createElement('a');
+    link.href = audioUrl;
+    link.download = `${postTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.webm`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -436,19 +650,116 @@ export const Posts = () => {
             />
 
             {newPost.post_type === 'audio' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={isRecording ? 'text-red-500' : ''}
-                  >
-                    {isRecording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    {isRecording ? 'Stop Recording' : 'Start Recording'}
-                  </Button>
-                  {audioBlob && (
-                    <Badge variant="secondary">Audio recorded</Badge>
+              <div className="space-y-4 p-4 bg-secondary/10 rounded-lg border border-secondary/20">
+                <div className="text-sm font-medium">Audio Content</div>
+                
+                {/* Recording Controls */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {!isRecording && !audioBlob && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={startRecording}
+                          className="gap-2"
+                        >
+                          <Mic className="w-4 h-4" />
+                          Start Recording
+                        </Button>
+                        <div className="text-sm text-muted-foreground">or</div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          Upload File
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="audio/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </>
+                    )}
+                    
+                    {isRecording && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={isPaused ? resumeRecording : pauseRecording}
+                          className="gap-2"
+                        >
+                          {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                          {isPaused ? 'Resume' : 'Pause'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={stopRecording}
+                          className="gap-2 text-red-500"
+                        >
+                          <Square className="w-4 h-4" />
+                          Stop
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={cancelRecording}
+                          size="sm"
+                        >
+                          Cancel
+                        </Button>
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className={`w-2 h-2 rounded-full ${isPaused ? 'bg-yellow-500' : 'bg-red-500 animate-pulse'}`} />
+                          <span className="font-mono">
+                            {formatTime(recordingTime)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {isPaused ? '(Paused)' : '(Recording)'}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {audioBlob && !isRecording && (
+                      <>
+                        <Badge variant="default" className="gap-2">
+                          <Play className="w-3 h-3" />
+                          Audio Ready
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setAudioBlob(null)}
+                          size="sm"
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          Remove
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => fileInputRef.current?.click()}
+                          size="sm"
+                          className="text-muted-foreground"
+                        >
+                          Replace
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  
+                  {uploading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                      Uploading audio...
+                    </div>
                   )}
                 </div>
               </div>
@@ -510,20 +821,37 @@ export const Posts = () => {
                 <p className="text-foreground/90">{post.content}</p>
                 
                 {post.post_type === 'audio' && post.audio_url && (
-                  <div className="flex items-center gap-2 p-3 bg-secondary/20 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg border border-secondary/30">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => playAudio(post.audio_url!, post.id)}
+                        className="hover:bg-primary/10"
+                      >
+                        {playingAudio === post.id ? 
+                          <Pause className="w-5 h-5" /> : 
+                          <Play className="w-5 h-5" />
+                        }
+                      </Button>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {playingAudio === post.id ? 'Now Playing...' : 'Audio Content'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Click to {playingAudio === post.id ? 'pause' : 'play'}
+                        </span>
+                      </div>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => playAudio(post.audio_url!, post.id)}
+                      onClick={() => downloadAudio(post.audio_url!, post.title)}
+                      className="gap-2 text-muted-foreground hover:text-foreground"
+                      title="Download audio"
                     >
-                      {playingAudio === post.id ? 
-                        <Pause className="w-4 h-4" /> : 
-                        <Play className="w-4 h-4" />
-                      }
+                      <Download className="w-4 h-4" />
                     </Button>
-                    <span className="text-sm text-muted-foreground">
-                      {playingAudio === post.id ? 'Playing...' : 'Audio Post'}
-                    </span>
                   </div>
                 )}
 
