@@ -950,9 +950,14 @@ export const RealGlobalPractice = () => {
                           variant="outline" 
                           size="sm" 
                           className="gap-2"
-                          onClick={() => {
+                          onClick={async () => {
+                            // Get the public URL from Supabase storage
+                            const { data } = supabase.storage
+                              .from('audio-posts')
+                              .getPublicUrl(session.recording_url);
+                            
                             const videoElement = document.createElement('video');
-                            videoElement.src = session.recording_url;
+                            videoElement.src = data.publicUrl;
                             videoElement.controls = true;
                             videoElement.style.width = '100%';
                             videoElement.style.maxWidth = '800px';
