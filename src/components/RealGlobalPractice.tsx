@@ -27,6 +27,7 @@ interface PracticeMatch {
   start_time?: string;
   end_time?: string;
   winner_user_id?: string;
+  recording_url?: string;
   created_at: string;
   creator_profile?: {
     display_name: string;
@@ -944,10 +945,66 @@ export const RealGlobalPractice = () => {
                     </div>
                     
                     <div className="flex justify-end">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Play className="w-3 h-3" />
-                        View Recording
-                      </Button>
+                      {session.recording_url ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="gap-2"
+                          onClick={() => {
+                            const videoElement = document.createElement('video');
+                            videoElement.src = session.recording_url;
+                            videoElement.controls = true;
+                            videoElement.style.width = '100%';
+                            videoElement.style.maxWidth = '800px';
+                            videoElement.style.height = 'auto';
+                            
+                            const modal = document.createElement('div');
+                            modal.style.position = 'fixed';
+                            modal.style.top = '0';
+                            modal.style.left = '0';
+                            modal.style.width = '100%';
+                            modal.style.height = '100%';
+                            modal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                            modal.style.display = 'flex';
+                            modal.style.alignItems = 'center';
+                            modal.style.justifyContent = 'center';
+                            modal.style.zIndex = '1000';
+                            modal.style.padding = '20px';
+                            
+                            const closeButton = document.createElement('button');
+                            closeButton.innerHTML = '✕';
+                            closeButton.style.position = 'absolute';
+                            closeButton.style.top = '20px';
+                            closeButton.style.right = '20px';
+                            closeButton.style.background = 'white';
+                            closeButton.style.border = 'none';
+                            closeButton.style.borderRadius = '50%';
+                            closeButton.style.width = '40px';
+                            closeButton.style.height = '40px';
+                            closeButton.style.fontSize = '20px';
+                            closeButton.style.cursor = 'pointer';
+                            closeButton.onclick = () => document.body.removeChild(modal);
+                            
+                            modal.appendChild(videoElement);
+                            modal.appendChild(closeButton);
+                            modal.onclick = (e) => {
+                              if (e.target === modal) {
+                                document.body.removeChild(modal);
+                              }
+                            };
+                            
+                            document.body.appendChild(modal);
+                          }}
+                        >
+                          <Play className="w-3 h-3" />
+                          Watch Recording
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" className="gap-2" disabled>
+                          <Play className="w-3 h-3" />
+                          No Recording
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
