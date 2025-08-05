@@ -78,13 +78,30 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
     if (hasStartedRecording) return; // Prevent multiple recordings
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: true, 
+      // Capture the screen/meeting page instead of just microphone
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { 
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: true
+      });
+      
+      // Also get microphone audio to ensure we capture user's voice
+      const micStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true,
         video: false 
       });
       
-      const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+      // Create a combined stream with screen video and both audio tracks
+      const combinedStream = new MediaStream([
+        ...displayStream.getVideoTracks(),
+        ...displayStream.getAudioTracks(),
+        ...micStream.getAudioTracks()
+      ]);
+      
+      const recorder = new MediaRecorder(combinedStream, {
+        mimeType: 'video/webm;codecs=vp9,opus'
       });
       
       const chunks: Blob[] = [];
@@ -96,12 +113,20 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       };
       
       recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
+        const blob = new Blob(chunks, { type: 'video/webm' });
         await uploadRecording(blob);
         
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
+        // Stop all tracks to release resources
+        combinedStream.getTracks().forEach(track => track.stop());
+        displayStream.getTracks().forEach(track => track.stop());
+        micStream.getTracks().forEach(track => track.stop());
       };
+      
+      // Handle case where user stops screen sharing manually
+      displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+        console.log('Screen sharing ended by user');
+        stopRecording();
+      });
       
       recorder.start();
       setMediaRecorder(recorder);
@@ -110,14 +135,14 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       setHasStartedRecording(true);
       
       toast({
-        title: "Recording Started",
-        description: "Session recording has begun automatically",
+        title: "Video Recording Started",
+        description: "Meeting screen recording has begun automatically",
       });
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
         title: "Recording Error",
-        description: "Could not start session recording",
+        description: "Could not start meeting screen recording. Please allow screen sharing permissions.",
         variant: "destructive",
       });
     }
@@ -130,14 +155,14 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
     }
   };
 
-  const uploadRecording = async (audioBlob: Blob) => {
+  const uploadRecording = async (videoBlob: Blob) => {
     try {
       const fileName = `session-${sessionId}-${Date.now()}.webm`;
       
       const { error: uploadError } = await supabase.storage
         .from('audio-posts')
-        .upload(fileName, audioBlob, {
-          contentType: 'audio/webm',
+        .upload(fileName, videoBlob, {
+          contentType: 'video/webm',
           cacheControl: '3600'
         });
 
