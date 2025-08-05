@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Crown } from 'lucide-react';
+import { ArrowLeft, Crown, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,12 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
   const [jitsiApi, setJitsiApi] = useState<any>(null);
   const [isSessionEnded, setIsSessionEnded] = useState(false);
   const jitsiContainer = useRef<HTMLDivElement>(null);
+  
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+  const [hasStartedRecording, setHasStartedRecording] = useState(false);
 
   const handleSpeakerAssignment = async (propSpeakers: string[], oppSpeakers: string[]) => {
     try {
@@ -68,8 +74,106 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
     }
   };
 
+  const startRecording = async () => {
+    if (hasStartedRecording) return; // Prevent multiple recordings
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true, 
+        video: false 
+      });
+      
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      const chunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm;codecs=opus' });
+        await uploadRecording(blob);
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecordedChunks(chunks);
+      setIsRecording(true);
+      setHasStartedRecording(true);
+      
+      toast({
+        title: "Recording Started",
+        description: "Session recording has begun automatically",
+      });
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast({
+        title: "Recording Error",
+        description: "Could not start session recording",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const uploadRecording = async (audioBlob: Blob) => {
+    try {
+      const fileName = `session-${sessionId}-${Date.now()}.webm`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('audio-posts')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600'
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Update practice match with recording URL
+      const { error: updateError } = await supabase
+        .from('practice_matches')
+        .update({ 
+          recording_url: fileName
+        })
+        .eq('id', sessionId);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Recording Saved",
+        description: "Session recording has been saved successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading recording:', error);
+      toast({
+        title: "Upload Error",
+        description: "Failed to save session recording",
+        variant: "destructive",
+      });
+    }
+  };
+
   const endSession = async () => {
     try {
+      // Stop recording if it's active
+      if (isRecording) {
+        stopRecording();
+      }
+      
       // Update session status to 'completed' in database
       await supabase
         .from('practice_matches')
@@ -182,6 +286,11 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
           // Handle when room is ready
           api.addEventListener('videoConferenceJoined', () => {
             console.log('Successfully joined conference');
+            
+            // Start recording automatically when first person joins
+            if (!hasStartedRecording) {
+              startRecording();
+            }
           });
         } catch (error) {
           console.error('Error initializing Jitsi:', error);
@@ -240,6 +349,17 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
         onSpeakerAssignment={handleSpeakerAssignment}
         onResultSubmission={handleResultSubmission}
       />
+
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="absolute top-4 right-4 z-10">
+          <div className="flex items-center space-x-2 bg-red-600/90 text-white px-4 py-2 rounded-lg">
+            <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
+            <Mic size={16} />
+            <span className="text-sm font-medium">Recording</span>
+          </div>
+        </div>
+      )}
 
       {/* Bottom controls - End Session button for host - below the meeting area */}
       {isHost && (
