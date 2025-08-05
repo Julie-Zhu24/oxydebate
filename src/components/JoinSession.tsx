@@ -78,11 +78,21 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
     if (hasStartedRecording) return; // Prevent multiple recordings
     
     try {
-      // Capture the screen/meeting page instead of just microphone
+      // Show instruction toast before starting recording
+      toast({
+        title: "Recording Setup",
+        description: "Please select 'Current Tab' to record only the meeting page when prompted",
+      });
+
+      // Wait a moment for the toast to show
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Capture the current browser tab (debate arena with meeting)
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
         video: { 
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30 }
         },
         audio: true
       });
@@ -135,14 +145,14 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       setHasStartedRecording(true);
       
       toast({
-        title: "Video Recording Started",
-        description: "Meeting screen recording has begun automatically",
+        title: "Meeting Recording Active",
+        description: "Recording the current tab with the meeting. Keep this tab focused for best results.",
       });
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
         title: "Recording Error",
-        description: "Could not start meeting screen recording. Please allow screen sharing permissions.",
+        description: "Please allow screen sharing and select 'Current Tab' to record the meeting page only.",
         variant: "destructive",
       });
     }
