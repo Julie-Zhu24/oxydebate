@@ -6,6 +6,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { MeetingControls } from './MeetingControls';
 import { useToast } from '@/hooks/use-toast';
 
+interface Participant {
+  id: string;
+  displayName: string;
+  email?: string;
+  userId?: string;
+}
+
 interface JoinSessionProps {
   sessionId: string;
   onBack: () => void;
@@ -24,6 +31,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
   const [hasStartedRecording, setHasStartedRecording] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
 
   const handleSpeakerAssignment = async (propSpeakers: string[], oppSpeakers: string[]) => {
     try {
@@ -306,10 +314,25 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
           // Handle participant events
           api.addEventListener('participantJoined', (participant: any) => {
             console.log('Participant joined:', participant);
+            
+            // Extract user ID from email if it exists (format: user_id@debate.app)
+            const userId = participant.email?.includes('@debate.app') 
+              ? participant.email.split('@')[0] 
+              : undefined;
+            
+            const newParticipant: Participant = {
+              id: participant.id,
+              displayName: participant.displayName,
+              email: participant.email,
+              userId: userId
+            };
+            
+            setParticipants(prev => [...prev.filter(p => p.id !== participant.id), newParticipant]);
           });
 
           api.addEventListener('participantLeft', (participant: any) => {
             console.log('Participant left:', participant);
+            setParticipants(prev => prev.filter(p => p.id !== participant.id));
           });
 
           // Handle when user leaves the meeting
@@ -381,6 +404,7 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
       <MeetingControls
         isHost={isHost}
         sessionId={sessionId}
+        participants={participants}
         onSpeakerAssignment={handleSpeakerAssignment}
         onResultSubmission={handleResultSubmission}
       />

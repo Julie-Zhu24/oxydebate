@@ -10,9 +10,17 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+interface Participant {
+  id: string;
+  displayName: string;
+  email?: string;
+  userId?: string; // Only available for authenticated users
+}
+
 interface MeetingControlsProps {
   isHost: boolean;
   sessionId: string;
+  participants: Participant[];
   onSpeakerAssignment: (propSpeakers: string[], oppSpeakers: string[]) => void;
   onResultSubmission: (result: 'prop_wins' | 'opp_wins' | 'tie') => void;
 }
@@ -20,6 +28,7 @@ interface MeetingControlsProps {
 export const MeetingControls = ({ 
   isHost, 
   sessionId, 
+  participants,
   onSpeakerAssignment, 
   onResultSubmission 
 }: MeetingControlsProps) => {
@@ -35,6 +44,9 @@ export const MeetingControls = ({
   const [showSpeakerDialog, setShowSpeakerDialog] = useState(false);
   const [propSpeakers, setPropSpeakers] = useState(['', '', '', '']);
   const [oppSpeakers, setOppSpeakers] = useState(['', '', '', '']);
+  
+  // Get authenticated participants only
+  const authenticatedParticipants = participants.filter(p => p.userId);
   
   // Result submission state
   const [showResultDialog, setShowResultDialog] = useState(false);
@@ -382,18 +394,92 @@ export const MeetingControls = ({
 
   const handleSpeakerSubmit = () => {
     if (!propSpeakers[0] || !oppSpeakers[0]) {
-      alert('Please fill in at least the first speakers for both sides');
+      toast({
+        title: "Missing Speakers",
+        description: "Please assign at least the first speakers for both sides",
+        variant: "destructive"
+      });
       return;
     }
     onSpeakerAssignment(propSpeakers, oppSpeakers);
     setShowSpeakerDialog(false);
   };
 
-  const handleResultSubmit = () => {
+  const handleResultSubmit = async () => {
     if (!selectedResult) {
-      alert('Please select a result');
+      toast({
+        title: "Missing Result",
+        description: "Please select a result",
+        variant: "destructive"
+      });
       return;
     }
+
+    // Record wins/losses for authenticated participants
+    try {
+      const propParticipants = propSpeakers
+        .filter(speaker => speaker.trim())
+        .map(speaker => authenticatedParticipants.find(p => p.displayName === speaker))
+        .filter(p => p?.userId);
+
+      const oppParticipants = oppSpeakers
+        .filter(speaker => speaker.trim())
+        .map(speaker => authenticatedParticipants.find(p => p.displayName === speaker))
+        .filter(p => p?.userId);
+
+      // Update user profiles based on result
+      const updatePromises = [];
+
+      if (selectedResult === 'prop_wins') {
+        // Prop team wins
+        propParticipants.forEach(participant => {
+          if (participant?.userId) {
+            updatePromises.push(
+              supabase.rpc('increment_user_wins', { user_id: participant.userId })
+            );
+          }
+        });
+        oppParticipants.forEach(participant => {
+          if (participant?.userId) {
+            updatePromises.push(
+              supabase.rpc('increment_user_losses', { user_id: participant.userId })
+            );
+          }
+        });
+      } else if (selectedResult === 'opp_wins') {
+        // Opp team wins
+        oppParticipants.forEach(participant => {
+          if (participant?.userId) {
+            updatePromises.push(
+              supabase.rpc('increment_user_wins', { user_id: participant.userId })
+            );
+          }
+        });
+        propParticipants.forEach(participant => {
+          if (participant?.userId) {
+            updatePromises.push(
+              supabase.rpc('increment_user_losses', { user_id: participant.userId })
+            );
+          }
+        });
+      }
+      // For ties, no wins/losses are recorded
+
+      await Promise.all(updatePromises);
+
+      toast({
+        title: "Result Recorded",
+        description: `${propParticipants.length + oppParticipants.length} user profiles updated`,
+      });
+    } catch (error) {
+      console.error('Error updating user profiles:', error);
+      toast({
+        title: "Warning",
+        description: "Result saved but user profile updates failed",
+        variant: "destructive"
+      });
+    }
+
     onResultSubmission(selectedResult);
     setShowResultDialog(false);
   };
@@ -515,17 +601,26 @@ export const MeetingControls = ({
                           <Label htmlFor={`prop-${index}`}>
                             {index === 0 ? '1st Speaker *' : `${index + 1}${index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'} Speaker`}
                           </Label>
-                          <Input
-                            id={`prop-${index}`}
+                          <Select
                             value={speaker}
-                            onChange={(e) => {
+                            onValueChange={(value) => {
                               const newSpeakers = [...propSpeakers];
-                              newSpeakers[index] = e.target.value;
+                              newSpeakers[index] = value;
                               setPropSpeakers(newSpeakers);
                             }}
-                            placeholder="Enter speaker name"
-                            required={index === 0}
-                          />
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Clear selection</SelectItem>
+                              {authenticatedParticipants.map((participant) => (
+                                <SelectItem key={participant.id} value={participant.displayName}>
+                                  {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       ))}
                     </CardContent>
@@ -541,17 +636,26 @@ export const MeetingControls = ({
                           <Label htmlFor={`opp-${index}`}>
                             {index === 0 ? '1st Speaker *' : `${index + 1}${index === 1 ? 'nd' : index === 2 ? 'rd' : 'th'} Speaker`}
                           </Label>
-                          <Input
-                            id={`opp-${index}`}
+                          <Select
                             value={speaker}
-                            onChange={(e) => {
+                            onValueChange={(value) => {
                               const newSpeakers = [...oppSpeakers];
-                              newSpeakers[index] = e.target.value;
+                              newSpeakers[index] = value;
                               setOppSpeakers(newSpeakers);
                             }}
-                            placeholder="Enter speaker name"
-                            required={index === 0}
-                          />
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">Clear selection</SelectItem>
+                              {authenticatedParticipants.map((participant) => (
+                                <SelectItem key={participant.id} value={participant.displayName}>
+                                  {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       ))}
                     </CardContent>
