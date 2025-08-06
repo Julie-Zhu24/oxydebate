@@ -242,6 +242,22 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
 
   // Initialize Jitsi Meet automatically when component loads
   useEffect(() => {
+    // Add current user to participants list immediately
+    if (profile && participants.length === 0) {
+      const displayName = profile.display_name || profile.username || 'Anonymous';
+      const userNameWithRole = isHost ? `${displayName} (Host)` : displayName;
+      
+      const currentUser: Participant = {
+        id: 'current-user-' + profile.user_id,
+        displayName: userNameWithRole,
+        email: profile.user_id + '@debate.app',
+        userId: profile.user_id
+      };
+      
+      setParticipants([currentUser]);
+      console.log('Added current user immediately:', currentUser);
+    }
+    
     // Prevent multiple initializations
     if (jitsiApi) {
       return;
@@ -316,14 +332,14 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
             console.log('Participant joined:', participant);
             
             // Extract user ID from email if it exists (format: user_id@debate.app)
-            const userId = participant.email?.includes('@debate.app') 
+            const userId = participant.email && participant.email.includes('@debate.app') 
               ? participant.email.split('@')[0] 
-              : undefined;
+              : null;
             
             const newParticipant: Participant = {
               id: participant.id,
               displayName: participant.displayName,
-              email: participant.email,
+              email: participant.email || null,
               userId: userId
             };
             
