@@ -48,6 +48,10 @@ export const MeetingControls = ({
   // Show all participants in dropdowns, but only authenticated ones will have wins/losses tracked
   const allParticipants = participants;
   
+  // Debug logging
+  console.log('MeetingControls participants:', participants);
+  console.log('allParticipants for dropdowns:', allParticipants);
+  
   // Result submission state
   const [showResultDialog, setShowResultDialog] = useState(false);
   const [selectedResult, setSelectedResult] = useState<'prop_wins' | 'opp_wins' | 'tie' | null>(null);

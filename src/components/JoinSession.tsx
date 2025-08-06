@@ -327,7 +327,11 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
               userId: userId
             };
             
-            setParticipants(prev => [...prev.filter(p => p.id !== participant.id), newParticipant]);
+            setParticipants(prev => {
+              const updated = [...prev.filter(p => p.id !== participant.id), newParticipant];
+              console.log('Updated participants list:', updated);
+              return updated;
+            });
           });
 
           api.addEventListener('participantLeft', (participant: any) => {
@@ -344,6 +348,23 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
           // Handle when room is ready
           api.addEventListener('videoConferenceJoined', () => {
             console.log('Successfully joined conference');
+            
+            // Add current user to participants list
+            const displayName = profile.display_name || profile.username || 'Anonymous';
+            const userNameWithRole = isHost ? `${displayName} (Host)` : displayName;
+            
+            const currentUser: Participant = {
+              id: 'current-user-' + profile.user_id,
+              displayName: userNameWithRole,
+              email: profile.user_id + '@debate.app',
+              userId: profile.user_id
+            };
+            
+            setParticipants(prev => {
+              const updated = [...prev.filter(p => p.userId !== profile.user_id), currentUser];
+              console.log('Added current user to participants:', updated);
+              return updated;
+            });
             
             // Start recording automatically when first person joins
             if (!hasStartedRecording) {
