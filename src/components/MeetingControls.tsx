@@ -45,8 +45,8 @@ export const MeetingControls = ({
   const [propSpeakers, setPropSpeakers] = useState(['', '', '', '']);
   const [oppSpeakers, setOppSpeakers] = useState(['', '', '', '']);
   
-  // Get authenticated participants only
-  const authenticatedParticipants = participants.filter(p => p.userId);
+  // Show all participants in dropdowns, but only authenticated ones will have wins/losses tracked
+  const allParticipants = participants;
   
   // Result submission state
   const [showResultDialog, setShowResultDialog] = useState(false);
@@ -419,12 +419,12 @@ export const MeetingControls = ({
     try {
       const propParticipants = propSpeakers
         .filter(speaker => speaker.trim())
-        .map(speaker => authenticatedParticipants.find(p => p.displayName === speaker))
+        .map(speaker => allParticipants.find(p => p.displayName === speaker))
         .filter(p => p?.userId);
 
       const oppParticipants = oppSpeakers
         .filter(speaker => speaker.trim())
-        .map(speaker => authenticatedParticipants.find(p => p.displayName === speaker))
+        .map(speaker => allParticipants.find(p => p.displayName === speaker))
         .filter(p => p?.userId);
 
       // Update user profiles based on result
@@ -613,7 +613,7 @@ export const MeetingControls = ({
                               <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
                             </SelectTrigger>
                             <SelectContent>
-                              {authenticatedParticipants.map((participant) => (
+                              {allParticipants.map((participant) => (
                                 <SelectItem key={participant.id} value={participant.displayName}>
                                   {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
                                 </SelectItem>
@@ -647,7 +647,7 @@ export const MeetingControls = ({
                               <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
                             </SelectTrigger>
                             <SelectContent>
-                              {authenticatedParticipants.map((participant) => (
+                              {allParticipants.map((participant) => (
                                 <SelectItem key={participant.id} value={participant.displayName}>
                                   {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
                                 </SelectItem>
