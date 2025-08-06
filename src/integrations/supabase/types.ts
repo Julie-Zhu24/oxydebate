@@ -386,7 +386,14 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      increment_user_losses: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
+      increment_user_wins: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -432,36 +432,36 @@ export const MeetingControls = ({
 
       if (selectedResult === 'prop_wins') {
         // Prop team wins
-        propParticipants.forEach(participant => {
+        for (const participant of propParticipants) {
           if (participant?.userId) {
             updatePromises.push(
               supabase.rpc('increment_user_wins', { user_id: participant.userId })
             );
           }
-        });
-        oppParticipants.forEach(participant => {
+        }
+        for (const participant of oppParticipants) {
           if (participant?.userId) {
             updatePromises.push(
               supabase.rpc('increment_user_losses', { user_id: participant.userId })
             );
           }
-        });
+        }
       } else if (selectedResult === 'opp_wins') {
         // Opp team wins
-        oppParticipants.forEach(participant => {
+        for (const participant of oppParticipants) {
           if (participant?.userId) {
             updatePromises.push(
               supabase.rpc('increment_user_wins', { user_id: participant.userId })
             );
           }
-        });
-        propParticipants.forEach(participant => {
+        }
+        for (const participant of propParticipants) {
           if (participant?.userId) {
             updatePromises.push(
               supabase.rpc('increment_user_losses', { user_id: participant.userId })
             );
           }
-        });
+        }
       }
       // For ties, no wins/losses are recorded
 
