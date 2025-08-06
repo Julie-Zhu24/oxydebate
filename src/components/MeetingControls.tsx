@@ -421,6 +421,12 @@ export const MeetingControls = ({
 
     // Record wins/losses for authenticated participants
     try {
+      // Get ALL authenticated participants (not just speakers) to increment their total sessions
+      const allAuthenticatedParticipants = allParticipants
+        .filter(p => p.userId)
+        .map(p => p.userId);
+
+      // Get participants who actually spoke for win/loss tracking
       const propParticipants = propSpeakers
         .filter(speaker => speaker.trim())
         .map(speaker => allParticipants.find(p => p.displayName === speaker))
@@ -431,7 +437,14 @@ export const MeetingControls = ({
         .map(speaker => allParticipants.find(p => p.displayName === speaker))
         .filter(p => p?.userId);
 
-      // Update user profiles based on result
+      // First, increment total sessions for ALL authenticated participants
+      if (allAuthenticatedParticipants.length > 0) {
+        await supabase.rpc('increment_total_sessions_for_participants', { 
+          participant_user_ids: allAuthenticatedParticipants 
+        });
+      }
+
+      // Then update win/loss records based on result
       const updatePromises = [];
 
       if (selectedResult === 'prop_wins') {
@@ -467,13 +480,17 @@ export const MeetingControls = ({
           }
         }
       }
-      // For ties, no wins/losses are recorded
+      // For ties, no wins/losses are recorded but total sessions still count
 
       await Promise.all(updatePromises);
 
+      const totalSpeakers = propParticipants.length + oppParticipants.length;
+      const resultText = selectedResult === 'tie' ? 'Tie declared' : 
+                        selectedResult === 'prop_wins' ? 'Proposition wins' : 'Opposition wins';
+
       toast({
-        title: "Result Recorded",
-        description: `${propParticipants.length + oppParticipants.length} user profiles updated`,
+        title: "Session Complete",
+        description: `${resultText}. ${allAuthenticatedParticipants.length} participants' sessions updated, ${totalSpeakers} speakers' records updated.`,
       });
     } catch (error) {
       console.error('Error updating user profiles:', error);

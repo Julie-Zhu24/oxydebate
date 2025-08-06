@@ -386,6 +386,10 @@ export type Database = {
       }
     }
     Functions: {
+      increment_total_sessions_for_participants: {
+        Args: { participant_user_ids: string[] }
+        Returns: undefined
+      }
       increment_user_losses: {
         Args: { user_id: string }
         Returns: undefined
