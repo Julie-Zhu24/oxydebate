@@ -613,7 +613,6 @@ export const MeetingControls = ({
                               <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Clear selection</SelectItem>
                               {authenticatedParticipants.map((participant) => (
                                 <SelectItem key={participant.id} value={participant.displayName}>
                                   {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
@@ -648,7 +647,6 @@ export const MeetingControls = ({
                               <SelectValue placeholder={`Select ${index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '4th'} speaker`} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">Clear selection</SelectItem>
                               {authenticatedParticipants.map((participant) => (
                                 <SelectItem key={participant.id} value={participant.displayName}>
                                   {participant.displayName} {participant.userId ? '(Account)' : '(Guest)'}
