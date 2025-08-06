@@ -80,8 +80,8 @@ export const JoinSession = ({ sessionId, onBack, isHost = false }: JoinSessionPr
     try {
       // Show instruction toast before starting recording
       toast({
-        title: "Recording Setup",
-        description: "Please select 'Current Tab' to record only the meeting page when prompted",
+        title: "Record Meeting",
+        description: "When prompted, please select 'Current Tab' to record this website's meeting page only",
       });
 
       // Wait a moment for the toast to show
