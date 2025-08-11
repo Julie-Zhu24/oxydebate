@@ -42,10 +42,19 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="absolute top-0 inset-x-0 z-20">
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="/" className="font-semibold tracking-tight hover-scale">Oxymorona</a>
-          <Button variant="outline" onClick={handleTopRight} aria-label={user ? 'Go to app' : 'Log in or sign up'}>
-            {user ? 'Go to app' : 'Log in / Sign up'}
-          </Button>
+          <a href="/" className="flex items-center gap-2">
+            <img src="/lovable-uploads/38ceb41b-5f98-475f-8a33-19dc45ce9689.png" alt="Oxymorona Debate logo" className="h-10 w-10 object-contain" />
+            <span className="font-playfair text-xl md:text-2xl font-semibold">Oxymorona Debate</span>
+          </a>
+          <div className="flex items-center gap-6">
+            <a href="/app" className="hidden md:inline-block font-playfair text-foreground hover:text-primary transition-colors">Practice</a>
+            <a href="/app" className="hidden md:inline-block font-playfair text-foreground hover:text-primary transition-colors">Global Practice</a>
+            <a href="/app" className="hidden md:inline-block font-playfair text-foreground hover:text-primary transition-colors">Rankings</a>
+            <a href="/app" className="hidden md:inline-block font-playfair text-foreground hover:text-primary transition-colors">Content</a>
+            <Button variant="outline" onClick={handleTopRight} aria-label={user ? 'Go to app' : 'Log in or sign up'}>
+              {user ? 'Go to app' : 'Log in / Sign up'}
+            </Button>
+          </div>
         </nav>
       </header>
 
@@ -53,13 +62,13 @@ const Index = () => {
         <img
           src="/lovable-uploads/6a42a2d6-37f7-4fce-87e7-f3dad3202a7b.png"
           alt="Students engaged in a debate at Oxymorona Community"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-background/10 via-background/20 to-background/60" />
 
         <div className="relative z-10 container mx-auto h-full px-4 lg:px-8 flex items-center">
           <div
-            className="max-w-xl md:max-w-2xl p-6 md:p-10 bg-card/80 border border-border backdrop-blur-md shadow-lg"
+            className="max-w-xl md:max-w-2xl p-6 md:p-10 bg-card/60 border border-border backdrop-blur-md shadow-lg"
             style={{ clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%)' }}
           >
             <h1 className="text-3xl md:text-5xl font-bold leading-tight mb-4">

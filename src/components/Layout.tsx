@@ -17,7 +17,7 @@ export const Layout = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      window.location.href = '/auth';
+      window.location.href = '/';
     }
   }, [user, loading]);
 
