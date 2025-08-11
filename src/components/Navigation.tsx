@@ -20,7 +20,7 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
   ];
 
   return (
-    <nav className="border-b bg-card/60 backdrop-blur-sm sticky top-0 z-50">
+    <nav className="border-b bg-card sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
@@ -35,30 +35,58 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
           </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            {navigationItems.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSectionChange(item.id)}
-                  className={`font-playfair text-sm md:text-base transition-colors ${
-                    isActive ? 'text-primary' : 'text-foreground hover:text-primary'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-            {isAuthenticated && (
+          <div className="hidden md:flex items-center gap-8 ml-auto">
+            {/* Practice menu */}
+            <div className="relative group">
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['ai-practice','global-practice','rankings'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+                Practice
+              </button>
+              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                <button onClick={() => onSectionChange('ai-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">AI Practice</button>
+                <button onClick={() => onSectionChange('global-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">Global Practice</button>
+                <button onClick={() => onSectionChange('rankings')} className="block w-full text-left px-4 py-2 hover:text-primary">Rankings</button>
+              </div>
+            </div>
+
+            {/* Tournament */}
+            <button onClick={() => onSectionChange('tournament')} className={`font-playfair text-sm md:text-base transition-colors ${activeSection === 'tournament' ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+              Tournament
+            </button>
+
+            {/* Resource menu */}
+            <div className="relative group">
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['content','global-news','debate-guide'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+                Resource
+              </button>
+              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                <button onClick={() => onSectionChange('content')} className="block w-full text-left px-4 py-2 hover:text-primary">Posts & Podcasts</button>
+                <button onClick={() => onSectionChange('global-news')} className="block w-full text-left px-4 py-2 hover:text-primary">Global News</button>
+                <button onClick={() => onSectionChange('debate-guide')} className="block w-full text-left px-4 py-2 hover:text-primary">Debate Guide</button>
+              </div>
+            </div>
+
+            {/* My Debate */}
+            <div className="relative group">
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['my-progress','join-us','feedback'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+                My Debate
+              </button>
+              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                <button onClick={() => onSectionChange('my-progress')} className="block w-full text-left px-4 py-2 hover:text-primary">My Progress</button>
+                <button onClick={() => onSectionChange('join-us')} className="block w-full text-left px-4 py-2 hover:text-primary">Join Us</button>
+                <button onClick={() => onSectionChange('feedback')} className="block w-full text-left px-4 py-2 hover:text-primary">Feedback</button>
+              </div>
+            </div>
+
+            {isAuthenticated ? (
               <button
                 onClick={onLogout}
-                className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label="Logout"
               >
-                <LogOut size={18} />
-                <span className="hidden sm:inline">Logout</span>
+                Logout
               </button>
+            ) : (
+              <a href="/auth" className="text-foreground hover:text-primary transition-colors">Log in / Sign up</a>
             )}
           </div>
 
@@ -72,39 +100,54 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
           </button>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t py-4 space-y-2">
-            {navigationItems.map((item) => {
-              const isActive = activeSection === item.id;
-              return (
+          {/* Mobile Navigation */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t py-4 space-y-2">
+              {/* Practice */}
+              <div className="px-4">
+                <div className="text-sm uppercase text-muted-foreground mb-2">Practice</div>
+                <div className="space-y-1">
+                  <button onClick={() => { onSectionChange('ai-practice'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">AI Practice</button>
+                  <button onClick={() => { onSectionChange('global-practice'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Global Practice</button>
+                  <button onClick={() => { onSectionChange('rankings'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Rankings</button>
+                </div>
+              </div>
+
+              {/* Tournament */}
+              <button onClick={() => { onSectionChange('tournament'); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-3">Tournament</button>
+
+              {/* Resource */}
+              <div className="px-4">
+                <div className="text-sm uppercase text-muted-foreground mb-2">Resource</div>
+                <div className="space-y-1">
+                  <button onClick={() => { onSectionChange('content'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Posts & Podcasts</button>
+                  <button onClick={() => { onSectionChange('global-news'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Global News</button>
+                  <button onClick={() => { onSectionChange('debate-guide'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Debate Guide</button>
+                </div>
+              </div>
+
+              {/* My Debate */}
+              <div className="px-4">
+                <div className="text-sm uppercase text-muted-foreground mb-2">My Debate</div>
+                <div className="space-y-1">
+                  <button onClick={() => { onSectionChange('my-progress'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">My Progress</button>
+                  <button onClick={() => { onSectionChange('join-us'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Join Us</button>
+                  <button onClick={() => { onSectionChange('feedback'); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2">Feedback</button>
+                </div>
+              </div>
+
+              {isAuthenticated ? (
                 <button
-                  key={item.id}
-                  onClick={() => {
-                    onSectionChange(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 font-playfair transition-colors ${
-                    isActive ? 'text-primary' : 'text-foreground hover:text-primary'
-                  }`}
+                  onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {item.label}
+                  Logout
                 </button>
-              );
-            })}
-            {isAuthenticated && (
-              <button
-                onClick={() => {
-                  onLogout();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full text-left px-4 py-3 text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Logout
-              </button>
-            )}
-          </div>
-        )}
+              ) : (
+                <a href="/auth" className="block w-full text-left px-4 py-3">Log in / Sign up</a>
+              )}
+            </div>
+          )}
       </div>
     </nav>
   );

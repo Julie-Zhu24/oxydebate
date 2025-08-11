@@ -8,18 +8,31 @@ import { RealRankings } from './RealRankings';
 import { Posts } from './Posts';
 import { DynamicBackground } from './DynamicBackground';
 import { Button } from '@/components/ui/button';
+import { ComingSoon } from '@/components/ComingSoon';
+import { MyProgress } from '@/components/MyProgress';
+import { Feedback } from '@/components/Feedback';
 
-export type Section = 'ai-practice' | 'global-practice' | 'rankings' | 'content';
+export type Section = 'ai-practice' | 'global-practice' | 'rankings' | 'content' | 'tournament' | 'global-news' | 'debate-guide' | 'my-progress' | 'join-us' | 'feedback';
 
 export const Layout = () => {
   const [activeSection, setActiveSection] = useState<Section>('ai-practice');
   const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
+    // Redirect to landing page if not authenticated
     if (!loading && !user) {
       window.location.href = '/';
     }
   }, [user, loading]);
+
+  // Initialize section from query param if provided
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sectionParam = params.get('section') as Section | null;
+    if (sectionParam) {
+      setActiveSection(sectionParam);
+    }
+  }, []);
 
   const handleSectionChange = (section: Section) => {
     setActiveSection(section);
@@ -47,6 +60,18 @@ export const Layout = () => {
         return <RealRankings />;
       case 'content':
         return <Posts />;
+      case 'tournament':
+        return <ComingSoon title="Tournaments" message="More tournaments coming soon." />;
+      case 'global-news':
+        return <ComingSoon title="Global News" message="Stay tuned. This section is coming soon." />;
+      case 'debate-guide':
+        return <ComingSoon title="Debate Guide" message="Guides and resources are on the way." />;
+      case 'join-us':
+        return <ComingSoon title="Join Us" message="This section is coming soon." />;
+      case 'my-progress':
+        return <MyProgress />;
+      case 'feedback':
+        return <Feedback />;
       default:
         return <AIPractice />;
     }
@@ -57,7 +82,7 @@ export const Layout = () => {
       <Navigation 
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
-        isAuthenticated={true}
+        isAuthenticated={!!user}
         onLogout={signOut}
       />
       <main className="container mx-auto px-4 py-8">
