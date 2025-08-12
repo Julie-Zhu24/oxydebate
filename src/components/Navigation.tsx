@@ -1,6 +1,6 @@
 import { Menu, LogOut } from 'lucide-react';
 import { Section } from './Layout';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface NavigationProps {
   activeSection: Section;
@@ -11,7 +11,21 @@ interface NavigationProps {
 
 export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, onLogout }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<null | 'practice' | 'resource' | 'mydebate'>(null);
+  const closeTimeout = useRef<number | null>(null);
 
+  const handleOpen = (menu: 'practice' | 'resource' | 'mydebate') => {
+    if (closeTimeout.current) {
+      window.clearTimeout(closeTimeout.current);
+      closeTimeout.current = null;
+    }
+    setOpenMenu(menu);
+  };
+
+  const handleCloseWithDelay = () => {
+    if (closeTimeout.current) window.clearTimeout(closeTimeout.current);
+    closeTimeout.current = window.setTimeout(() => setOpenMenu(null), 120);
+  };
   const navigationItems = [
     { id: 'ai-practice' as Section, label: 'AI Practice' },
     { id: 'global-practice' as Section, label: 'Global Practice' },
@@ -37,15 +51,21 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8 ml-auto">
             {/* Practice menu */}
-            <div className="relative group">
+            <div 
+              className="relative"
+              onMouseEnter={() => handleOpen('practice')}
+              onMouseLeave={handleCloseWithDelay}
+            >
               <button className={`font-playfair text-sm md:text-base transition-colors ${['ai-practice','global-practice','rankings'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 Practice
               </button>
-              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
-                <button onClick={() => onSectionChange('ai-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">AI Practice</button>
-                <button onClick={() => onSectionChange('global-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">Global Practice</button>
-                <button onClick={() => onSectionChange('rankings')} className="block w-full text-left px-4 py-2 hover:text-primary">Rankings</button>
-              </div>
+              {openMenu === 'practice' && (
+                <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('ai-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">AI Practice</button>
+                  <button onClick={() => onSectionChange('global-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">Global Practice</button>
+                  <button onClick={() => onSectionChange('rankings')} className="block w-full text-left px-4 py-2 hover:text-primary">Rankings</button>
+                </div>
+              )}
             </div>
 
             {/* Tournament */}
@@ -54,27 +74,39 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
             </button>
 
             {/* Resource menu */}
-            <div className="relative group">
+            <div 
+              className="relative"
+              onMouseEnter={() => handleOpen('resource')}
+              onMouseLeave={handleCloseWithDelay}
+            >
               <button className={`font-playfair text-sm md:text-base transition-colors ${['content','global-news','debate-guide'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 Resource
               </button>
-              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
-                <button onClick={() => onSectionChange('content')} className="block w-full text-left px-4 py-2 hover:text-primary">Posts & Podcasts</button>
-                <button onClick={() => onSectionChange('global-news')} className="block w-full text-left px-4 py-2 hover:text-primary">Global News</button>
-                <button onClick={() => onSectionChange('debate-guide')} className="block w-full text-left px-4 py-2 hover:text-primary">Debate Guide</button>
-              </div>
+              {openMenu === 'resource' && (
+                <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('content')} className="block w-full text-left px-4 py-2 hover:text-primary">Posts & Podcasts</button>
+                  <button onClick={() => onSectionChange('global-news')} className="block w-full text-left px-4 py-2 hover:text-primary">Global News</button>
+                  <button onClick={() => onSectionChange('debate-guide')} className="block w-full text-left px-4 py-2 hover:text-primary">Debate Guide</button>
+                </div>
+              )}
             </div>
 
             {/* My Debate */}
-            <div className="relative group">
+            <div 
+              className="relative"
+              onMouseEnter={() => handleOpen('mydebate')}
+              onMouseLeave={handleCloseWithDelay}
+            >
               <button className={`font-playfair text-sm md:text-base transition-colors ${['my-progress','join-us','feedback'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 My Debate
               </button>
-              <div className="absolute left-0 mt-2 hidden group-hover:block bg-card border shadow-lg rounded-md py-2 w-56 z-50">
-                <button onClick={() => onSectionChange('my-progress')} className="block w-full text-left px-4 py-2 hover:text-primary">My Progress</button>
-                <button onClick={() => onSectionChange('join-us')} className="block w-full text-left px-4 py-2 hover:text-primary">Join Us</button>
-                <button onClick={() => onSectionChange('feedback')} className="block w-full text-left px-4 py-2 hover:text-primary">Feedback</button>
-              </div>
+              {openMenu === 'mydebate' && (
+                <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('my-progress')} className="block w-full text-left px-4 py-2 hover:text-primary">My Progress</button>
+                  <button onClick={() => onSectionChange('join-us')} className="block w-full text-left px-4 py-2 hover:text-primary">Join Us</button>
+                  <button onClick={() => onSectionChange('feedback')} className="block w-full text-left px-4 py-2 hover:text-primary">Feedback</button>
+                </div>
+              )}
             </div>
 
             {isAuthenticated ? (

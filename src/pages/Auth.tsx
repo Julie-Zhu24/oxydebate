@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { DynamicBackground } from '@/components/DynamicBackground';
+
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -57,8 +57,8 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4">
-      <DynamicBackground />
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-accent/10 to-background">
+      {/* Background adjusted to match the dark red theme */}
       
       <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border/20 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
