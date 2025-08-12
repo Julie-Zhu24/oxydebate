@@ -1,11 +1,11 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/Navigation';
 import type { Section } from '@/components/Layout';
-import { Bell } from 'lucide-react';
+import { Announcements } from '@/components/Announcements';
 const Index = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -36,18 +36,6 @@ const Index = () => {
     navigate(user ? '/app' : '/auth');
   };
 
-  // Announcements indicator using a simple version flag
-  const ANNOUNCEMENT_VERSION = 0; // bump when a new announcement is published
-  const [hasNewAnnouncement, setHasNewAnnouncement] = useState(() => {
-    const seen = Number(localStorage.getItem('announcements_seen_version') || '0');
-    return seen < ANNOUNCEMENT_VERSION;
-  });
-
-  const handleBellClick = () => {
-    document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
-    localStorage.setItem('announcements_seen_version', String(ANNOUNCEMENT_VERSION));
-    setHasNewAnnouncement(false);
-  };
 
   const handleNavSectionChange = (section: Section) => {
     navigate(user ? `/app?section=${section}` : '/auth');
@@ -88,25 +76,7 @@ const Index = () => {
       </section>
 
       <main>
-        <section id="announcements" className="container mx-auto px-4 py-16 md:py-20">
-          <header className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl md:text-3xl font-semibold">Announcements</h2>
-            <span className="text-sm text-muted-foreground">{hasNewAnnouncement ? 'New' : 'No new announcements'}</span>
-          </header>
-          <div className="grid grid-cols-1">
-            <article className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bell className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium">Stay tuned</h3>
-                  <p className="text-sm text-muted-foreground">Announcements will appear here when available.</p>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
+        <Announcements />
 
         <section className="container mx-auto px-4 pb-16 md:pb-24">
           <h2 className="text-2xl md:text-3xl font-semibold mb-8">Meet our team</h2>

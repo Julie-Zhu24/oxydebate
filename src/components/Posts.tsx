@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, MessageCircle, Share2, Play, Pause, Mic, Square, Upload, Download } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Pause, Mic, Square, Upload, Download, Trash } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -69,7 +69,7 @@ export const Posts = () => {
   
   const { user, profile } = useAuth();
   const { toast } = useToast();
-
+  const { isAdmin } = useRoles();
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -584,6 +584,19 @@ export const Posts = () => {
     document.body.removeChild(link);
   };
 
+  const deletePost = async (postId: string) => {
+    if (!user) return;
+    const ok = window.confirm('Delete this post?');
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from('posts').delete().eq('id', postId);
+      if (error) throw error;
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      toast({ title: 'Post deleted' });
+    } catch (e: any) {
+      toast({ title: 'Failed to delete', description: e.message, variant: 'destructive' });
+    }
+  };
   if (loading) {
     return (
       <div className="space-y-6">
@@ -897,6 +910,17 @@ export const Posts = () => {
                     <Share2 className="w-4 h-4" />
                     Share
                   </Button>
+
+                  {user && (isAdmin || user.id === post.user_id) && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-2 ml-auto"
+                      onClick={() => deletePost(post.id)}
+                    >
+                      <Trash className="w-4 h-4" /> Delete
+                    </Button>
+                  )}
                 </div>
 
                 {showComments === post.id && (
