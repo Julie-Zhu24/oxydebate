@@ -1,7 +1,7 @@
-import { Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut, Bell } from 'lucide-react';
 import { Section } from './Layout';
-import { useState, useRef } from 'react';
-
+import { useState, useRef, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 interface NavigationProps {
   activeSection: Section;
   onSectionChange: (section: Section) => void;
@@ -13,6 +13,37 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<null | 'practice' | 'resource' | 'mydebate'>(null);
   const closeTimeout = useRef<number | null>(null);
+
+  const [hasNewAnnouncements, setHasNewAnnouncements] = useState(false);
+
+  useEffect(() => {
+    const loadLatest = async () => {
+      try {
+        const { data, error } = await (supabase as any)
+          .from('announcements')
+          .select('published_at')
+          .eq('is_published', true)
+          .order('published_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) return;
+        const latest = data?.published_at ? new Date(data.published_at).getTime() : 0;
+        const lastSeen = parseInt(localStorage.getItem('ann_last_seen_ts') || '0', 10);
+        if (latest && latest > lastSeen) setHasNewAnnouncements(true);
+      } catch {}
+    };
+    loadLatest();
+  }, []);
+
+  const goToAnnouncements = () => {
+    localStorage.setItem('ann_last_seen_ts', Date.now().toString());
+    setHasNewAnnouncements(false);
+    if (window.location.pathname === '/') {
+      document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.location.href = '/#announcements';
+    }
+  };
 
   const handleOpen = (menu: 'practice' | 'resource' | 'mydebate') => {
     if (closeTimeout.current) {

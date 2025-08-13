@@ -51,7 +51,7 @@ const Index = () => {
       {/* Hero Section */}
       <section className="relative w-full h-[80vh] md:h-screen overflow-hidden">
         <img
-          src="/lovable-uploads/a569dfbd-7de4-45be-b390-a1e5f04affa9.png"
+          src="/lovable-uploads/81b3875b-f5ba-4565-873d-48077a07f163.png"
           alt="Students engaged in a debate at Oxymorona Community"
           className="absolute inset-0 w-full h-full object-cover"
         />
