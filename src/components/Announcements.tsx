@@ -33,13 +33,14 @@ export const Announcements = () => {
 
   const fetchAnnouncements = async () => {
     try {
-      const { data, error } = await supabase
+      const sb = supabase as any;
+      const { data, error } = await sb
         .from('announcements')
         .select('*')
         .eq('is_published', true)
         .order('published_at', { ascending: false });
       if (error) throw error;
-      setAnnouncements(data || []);
+      setAnnouncements((data || []) as Announcement[]);
     } catch (e) {
       toast({ title: 'Error', description: 'Failed to load announcements', variant: 'destructive' });
     } finally {
@@ -67,7 +68,7 @@ export const Announcements = () => {
       };
       if (publish) payload.published_at = new Date().toISOString();
 
-      const { error } = await supabase.from('announcements').insert(payload);
+      const { error } = await (supabase as any).from('announcements').insert(payload);
       if (error) throw error;
 
       toast({ title: publish ? 'Announcement published' : 'Draft saved' });

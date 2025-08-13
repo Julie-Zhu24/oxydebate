@@ -15,12 +15,13 @@ export const useRoles = () => {
       }
       setLoading(true);
       try {
-        const { data, error } = await supabase
+        const sb = supabase as any;
+        const { data, error } = await sb
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id);
         if (error) throw error;
-        setRoles((data || []).map((r: any) => r.role));
+        setRoles(((data || []) as any[]).map((r: any) => r.role));
       } catch (e) {
         // fail silently
         setRoles([]);
