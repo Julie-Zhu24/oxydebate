@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoles } from '@/hooks/useRoles';
 import { Bell } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface Announcement {
   id: string;
@@ -82,6 +84,45 @@ export const Announcements = () => {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `images/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('announcements')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data } = supabase.storage.from('announcements').getPublicUrl(path);
+      const url = data.publicUrl;
+      setContent((prev) => `${prev || ''}<p><img src="${url}" alt="announcement image" /></p>`);
+      toast({ title: 'Image added to announcement' });
+    } catch (err: any) {
+      toast({ title: 'Upload failed', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    try {
+      const { error } = await (supabase as any).from('announcements').delete().eq('id', id);
+      if (error) throw error;
+      toast({ title: 'Announcement deleted' });
+      fetchAnnouncements();
+    } catch (e: any) {
+      toast({ title: 'Delete failed', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const quillModules = {
+    toolbar: [
+      [{ font: [] }, { size: [] }],
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link', 'clean']
+    ],
+  } as const;
+
   return (
     <section id="announcements" className="container mx-auto px-4 py-16 md:py-20">
       <header className="flex items-center justify-between mb-6">
@@ -102,9 +143,22 @@ export const Announcements = () => {
           <CardHeader>
             <CardTitle>Create announcement</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             <Input placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <Textarea placeholder="Write the announcement..." rows={5} value={content} onChange={(e) => setContent(e.target.value)} />
+            <div className="border border-border rounded-md overflow-hidden bg-card">
+              <ReactQuill theme="snow" value={content} onChange={setContent} modules={quillModules} />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-muted-foreground">
+                Add image:
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="ml-2"
+                  onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])}
+                />
+              </label>
+            </div>
             <div className="flex gap-2">
               <Button onClick={() => saveAnnouncement(true)} disabled={saving}>
                 {saving ? 'Publishing...' : 'Publish'}
@@ -127,22 +181,32 @@ export const Announcements = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {announcements.map((a) => (
-            <article key={a.id} className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm">
-              <div className="flex items-center gap-4 mb-2">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bell className="h-5 w-5 text-primary" />
+            <Collapsible key={a.id} className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bell className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium">{a.title}</h3>
+                    <p className="text-xs text-muted-foreground">{a.published_at ? new Date(a.published_at).toLocaleString() : ''}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-medium">{a.title}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {a.published_at ? new Date(a.published_at).toLocaleString() : ''}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" aria-label="Toggle announcement">Read more</Button>
+                  </CollapsibleTrigger>
+                  {isAdmin && (
+                    <Button variant="destructive" size="sm" onClick={() => deleteAnnouncement(a.id)}>Delete</Button>
+                  )}
                 </div>
               </div>
-              <p className="text-sm whitespace-pre-wrap">{a.content}</p>
-            </article>
+              <CollapsibleContent className="mt-4">
+                <div className="space-y-3 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: a.content }} />
+              </CollapsibleContent>
+            </Collapsible>
           ))}
         </div>
       )}

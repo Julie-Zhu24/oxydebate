@@ -139,6 +139,17 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
                 </div>
               )}
             </div>
+            {/* Announcements Bell */}
+            <button
+              onClick={goToAnnouncements}
+              className="relative text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="View announcements"
+            >
+              <Bell className="h-5 w-5" />
+              {hasNewAnnouncements && (
+                <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive" />
+              )}
+            </button>
 
             {isAuthenticated ? (
               <button
@@ -166,6 +177,13 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
           {/* Mobile Navigation */}
           {isMobileMenuOpen && (
             <div className="md:hidden border-t py-4 space-y-2">
+              <div className="flex items-center justify-between px-4">
+                <span className="text-sm uppercase text-muted-foreground">Updates</span>
+                <button onClick={() => { goToAnnouncements(); setIsMobileMenuOpen(false); }} className="relative p-2" aria-label="View announcements">
+                  <Bell className="h-5 w-5" />
+                  {hasNewAnnouncements && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-destructive" />}
+                </button>
+              </div>
               {/* Practice */}
               <div className="px-4">
                 <div className="text-sm uppercase text-muted-foreground mb-2">Practice</div>
