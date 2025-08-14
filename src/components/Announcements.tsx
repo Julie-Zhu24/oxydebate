@@ -181,9 +181,9 @@ export const Announcements = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollSnapType: 'x mandatory' }}>
           {announcements.map((a) => (
-            <Collapsible key={a.id} className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm">
+            <Collapsible key={a.id} className="min-w-80 max-w-80 p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm" style={{ scrollSnapAlign: 'start' }}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">

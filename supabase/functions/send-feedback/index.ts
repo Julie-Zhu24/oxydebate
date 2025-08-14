@@ -25,7 +25,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailResponse = await resend.emails.send({
       from: "Oxymorona <onboarding@resend.dev>",
-      to: ["hermione_z@sina.com"],
+      to: ["juliezhu.ziyang@gmail.com"],
       subject: `New feedback from ${name || 'Anonymous'}`,
       html: `
         <h2>New feedback received</h2>

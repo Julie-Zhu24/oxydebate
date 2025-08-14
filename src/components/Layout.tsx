@@ -66,7 +66,7 @@ export const Layout = () => {
       case 'global-news':
         return <ComingSoon title="Global News" message="Stay tuned. This section is coming soon." />;
       case 'debate-guide':
-        return <ComingSoon title="Debate Guide" message="Guides and resources are on the way." />;
+        return <DebateGuide />;
       case 'join-us':
         return <ComingSoon title="Join Us" message="This section is coming soon." />;
       case 'my-progress':

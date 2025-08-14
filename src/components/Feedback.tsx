@@ -38,7 +38,7 @@ export const Feedback = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Send us your feedback</h1>
-      <p className="text-sm text-muted-foreground">We will forward it to hermione_z@sina.com.</p>
+      <p className="text-sm text-muted-foreground">We will forward it to juliezhu.ziyang@gmail.com.</p>
       <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type your feedback here..." className="min-h-40" />
       <Button onClick={submit} disabled={loading}>{loading ? 'Sending...' : 'Send feedback'}</Button>
     </div>

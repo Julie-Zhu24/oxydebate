@@ -41,7 +41,10 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
     if (window.location.pathname === '/') {
       document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
     } else {
-      window.location.href = '/#announcements';
+      window.location.href = '/?section=announcements';
+      setTimeout(() => {
+        document.getElementById('announcements')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
   };
 
