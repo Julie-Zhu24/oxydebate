@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -78,6 +78,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      debate_lessons: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          description: string | null
+          id: string
+          is_published: boolean
+          text_path: string | null
+          title: string
+          updated_at: string
+          video_path: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          text_path?: string | null
+          title: string
+          updated_at?: string
+          video_path?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          text_path?: string | null
+          title?: string
+          updated_at?: string
+          video_path?: string | null
+        }
+        Relationships: []
       }
       likes: {
         Row: {
@@ -398,6 +434,120 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by_user_id: string
+          id: string
+          target_team_name: string | null
+          target_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          target_team_name?: string | null
+          target_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          target_team_name?: string | null
+          target_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tournament_debaters: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          partner_email: string
+          partner_name: string
+          privacy_accepted: boolean
+          school: string
+          team_name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          partner_email: string
+          partner_name: string
+          privacy_accepted?: boolean
+          school: string
+          team_name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          partner_email?: string
+          partner_name?: string
+          privacy_accepted?: boolean
+          school?: string
+          team_name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      tournament_judges: {
+        Row: {
+          created_at: string
+          debate_experience: string
+          email: string
+          id: string
+          judge_experience: string
+          name: string
+          privacy_accepted: boolean
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          debate_experience: string
+          email: string
+          id?: string
+          judge_experience: string
+          name: string
+          privacy_accepted?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          debate_experience?: string
+          email?: string
+          id?: string
+          judge_experience?: string
+          name?: string
+          privacy_accepted?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -439,8 +589,8 @@ export type Database = {
     Functions: {
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
