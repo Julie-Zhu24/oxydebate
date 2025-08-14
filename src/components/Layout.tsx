@@ -12,6 +12,7 @@ import { ComingSoon } from '@/components/ComingSoon';
 import { MyProgress } from '@/components/MyProgress';
 import { Feedback } from '@/components/Feedback';
 import { DebateGuide } from '@/components/DebateGuide';
+import { Tournament } from '@/components/Tournament';
 
 export type Section = 'ai-practice' | 'global-practice' | 'rankings' | 'content' | 'tournament' | 'global-news' | 'debate-guide' | 'my-progress' | 'join-us' | 'feedback';
 
@@ -62,7 +63,7 @@ export const Layout = () => {
       case 'content':
         return <Posts />;
       case 'tournament':
-        return <ComingSoon title="Tournaments" message="More tournaments coming soon." />;
+        return <Tournament />;
       case 'global-news':
         return <ComingSoon title="Global News" message="Stay tuned. This section is coming soon." />;
       case 'debate-guide':
