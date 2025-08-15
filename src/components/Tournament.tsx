@@ -79,14 +79,22 @@ export const Tournament = () => {
   const loadAdminData = async () => {
     try {
       const [debatersRes, judgesRes] = await Promise.all([
-        supabase.from('tournament_debaters').select('*').order('created_at', { ascending: false }),
+        supabase.from('tournament_debaters').select('*').order('team_name', { ascending: true }),
         supabase.from('tournament_judges').select('*').order('created_at', { ascending: false })
       ]);
 
       if (debatersRes.error) throw debatersRes.error;
       if (judgesRes.error) throw judgesRes.error;
 
-      setDebaters(debatersRes.data || []);
+      // Group debaters by team for better organization
+      const sortedDebaters = (debatersRes.data || []).sort((a, b) => {
+        if (a.team_name === b.team_name) {
+          return a.created_at.localeCompare(b.created_at);
+        }
+        return a.team_name.localeCompare(b.team_name);
+      });
+
+      setDebaters(sortedDebaters);
       setJudges(judgesRes.data || []);
     } catch (error: any) {
       toast({ title: 'Failed to load data', description: error.message, variant: 'destructive' });
@@ -150,28 +158,60 @@ export const Tournament = () => {
   };
 
   const handlePortalAccess = async () => {
+    if (!portalEmail.trim()) {
+      toast({ title: 'Please enter your email', variant: 'destructive' });
+      return;
+    }
+
     try {
-      const [debaterRes, judgeRes] = await Promise.all([
+      // Check if email exists in debaters (including partner emails) or judges
+      const [debaterRes, partnerRes, judgeRes] = await Promise.all([
         supabase.from('tournament_debaters').select('*').eq('email', portalEmail).maybeSingle(),
-        supabase.from('tournament_judges').select('*').eq('email', portalEmail).eq('status', 'approved').maybeSingle()
+        supabase.from('tournament_debaters').select('*').eq('partner_email', portalEmail).maybeSingle(),
+        supabase.from('tournament_judges').select('*').eq('email', portalEmail).maybeSingle()
       ]);
 
-      if (debaterRes.data) {
+      const debaterData = debaterRes.data;
+      const partnerData = partnerRes.data;
+      const judgeData = judgeRes.data;
+
+      if (debaterData) {
         const teamAnnouncements = announcements.filter(a => 
           a.target_type === 'all' || 
           a.target_type === 'debaters' || 
-          (a.target_type === 'team' && a.target_team_name === debaterRes.data.team_name)
+          (a.target_type === 'team' && a.target_team_name === debaterData.team_name)
         );
-        setPortalData({ type: 'debater', data: debaterRes.data, announcements: teamAnnouncements });
+        setPortalData({ type: 'debater', data: debaterData, announcements: teamAnnouncements });
         setShowPortal(true);
-      } else if (judgeRes.data) {
-        const judgeAnnouncements = announcements.filter(a => 
-          a.target_type === 'all' || a.target_type === 'judges'
+      } else if (partnerData) {
+        // Partner can access the portal using their team's registration
+        const teamAnnouncements = announcements.filter(a => 
+          a.target_type === 'all' || 
+          a.target_type === 'debaters' || 
+          (a.target_type === 'team' && a.target_team_name === partnerData.team_name)
         );
-        setPortalData({ type: 'judge', data: judgeRes.data, announcements: judgeAnnouncements });
+        setPortalData({ type: 'debater', data: partnerData, announcements: teamAnnouncements, isPartner: true });
         setShowPortal(true);
+      } else if (judgeData) {
+        if (judgeData.status === 'approved') {
+          const judgeAnnouncements = announcements.filter(a => 
+            a.target_type === 'all' || a.target_type === 'judges'
+          );
+          setPortalData({ type: 'judge', data: judgeData, announcements: judgeAnnouncements });
+          setShowPortal(true);
+        } else {
+          toast({ 
+            title: 'Application Pending', 
+            description: 'Your judge application is still being reviewed. Please wait for email confirmation.',
+            variant: 'destructive' 
+          });
+        }
       } else {
-        toast({ title: 'Access denied', description: 'Email not found in our records or application not approved.', variant: 'destructive' });
+        toast({ 
+          title: 'Email not found', 
+          description: 'No registration found with this email address.',
+          variant: 'destructive' 
+        });
       }
     } catch (error: any) {
       toast({ title: 'Portal access failed', description: error.message, variant: 'destructive' });
