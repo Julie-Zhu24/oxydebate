@@ -457,7 +457,7 @@ export const Tournament = () => {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold">2025 Shanghai High School Debate Friend League</h1>
+        <h1 className="text-4xl font-bold">2025 Shanghai High School Debate League</h1>
         <p className="text-lg text-muted-foreground">Join the premier high school debate tournament in Shanghai</p>
       </div>
 
