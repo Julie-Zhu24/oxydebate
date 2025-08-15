@@ -41,6 +41,8 @@ interface Announcement {
   content: string;
   target_type: string;
   target_team_name?: string;
+  target_individual_email?: string;
+  file_attachments?: Array<{name: string, url: string, type: string}>;
   created_at: string;
 }
 
@@ -66,7 +68,12 @@ export const Tournament = () => {
 
   // Admin announcement form
   const [announcementForm, setAnnouncementForm] = useState({
-    title: '', content: '', target_type: 'all', target_team_name: ''
+    title: '',
+    content: '',
+    target_type: 'all',
+    target_team_name: '',
+    target_individual_email: '',
+    file_attachments: [] as Array<{name: string, url: string, type: string}>
   });
 
   useEffect(() => {
@@ -109,7 +116,12 @@ export const Tournament = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAnnouncements(data || []);
+      setAnnouncements((data || []).map(item => ({
+        ...item,
+        file_attachments: Array.isArray(item.file_attachments) 
+          ? item.file_attachments as Array<{name: string, url: string, type: string}>
+          : []
+      })));
     } catch (error: any) {
       toast({ title: 'Failed to load announcements', description: error.message, variant: 'destructive' });
     }
@@ -179,7 +191,8 @@ export const Tournament = () => {
         const teamAnnouncements = announcements.filter(a => 
           a.target_type === 'all' || 
           a.target_type === 'debaters' || 
-          (a.target_type === 'team' && a.target_team_name === debaterData.team_name)
+          (a.target_type === 'team' && a.target_team_name === debaterData.team_name) ||
+          (a.target_type === 'individual' && a.target_individual_email === portalEmail)
         );
         setPortalData({ type: 'debater', data: debaterData, announcements: teamAnnouncements });
         setShowPortal(true);
@@ -188,7 +201,8 @@ export const Tournament = () => {
         const teamAnnouncements = announcements.filter(a => 
           a.target_type === 'all' || 
           a.target_type === 'debaters' || 
-          (a.target_type === 'team' && a.target_team_name === partnerData.team_name)
+          (a.target_type === 'team' && a.target_team_name === partnerData.team_name) ||
+          (a.target_type === 'individual' && a.target_individual_email === portalEmail)
         );
         setPortalData({ type: 'debater', data: partnerData, announcements: teamAnnouncements, isPartner: true });
         setShowPortal(true);
@@ -246,7 +260,14 @@ export const Tournament = () => {
       if (error) throw error;
 
       toast({ title: 'Announcement created!', description: 'Your announcement has been posted.' });
-      setAnnouncementForm({ title: '', content: '', target_type: 'all', target_team_name: '' });
+      setAnnouncementForm({
+        title: '',
+        content: '',
+        target_type: 'all',
+        target_team_name: '',
+        target_individual_email: '',
+        file_attachments: []
+      });
       loadAnnouncements();
     } catch (error: any) {
       toast({ title: 'Failed to create announcement', description: error.message, variant: 'destructive' });
@@ -255,6 +276,53 @@ export const Tournament = () => {
 
   const getTeamNames = () => {
     return [...new Set(debaters.map(d => d.team_name))];
+  };
+
+  const getAllDebaterEmails = () => {
+    const emails = new Set<string>();
+    debaters.forEach(d => {
+      emails.add(d.email);
+      emails.add(d.partner_email);
+    });
+    return Array.from(emails).sort();
+  };
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const filePath = `tournament-files/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('announcements')
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data } = supabase.storage.from('announcements').getPublicUrl(filePath);
+      
+      const attachment = {
+        name: file.name,
+        url: data.publicUrl,
+        type: file.type
+      };
+      
+      setAnnouncementForm(prev => ({
+        ...prev,
+        file_attachments: [...prev.file_attachments, attachment]
+      }));
+      
+      toast({ title: 'File uploaded successfully!' });
+    } catch (error: any) {
+      toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAnnouncementForm(prev => ({
+      ...prev,
+      file_attachments: prev.file_attachments.filter((_, i) => i !== index)
+    }));
   };
 
   const PrivacyContract = () => (
@@ -307,12 +375,28 @@ export const Tournament = () => {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base">{announcement.title}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="whitespace-pre-wrap">{announcement.content}</p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {new Date(announcement.created_at).toLocaleDateString()}
-                      </p>
-                    </CardContent>
+                     <CardContent>
+                       <p className="whitespace-pre-wrap">{announcement.content}</p>
+                       {announcement.file_attachments && announcement.file_attachments.length > 0 && (
+                         <div className="mt-3 space-y-2">
+                           <h4 className="text-sm font-medium">Attachments:</h4>
+                           {announcement.file_attachments.map((file, index) => (
+                             <a
+                               key={index}
+                               href={file.url}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="block text-sm text-primary hover:underline"
+                             >
+                               📎 {file.name}
+                             </a>
+                           ))}
+                         </div>
+                       )}
+                       <p className="text-xs text-muted-foreground mt-2">
+                         {new Date(announcement.created_at).toLocaleDateString()}
+                       </p>
+                     </CardContent>
                   </Card>
                 ))}
                 {portalData.announcements.length === 0 && (
@@ -415,17 +499,35 @@ export const Tournament = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>{announcement.title}</span>
-                      <Badge>
-                        {announcement.target_type === 'team' ? `Team: ${announcement.target_team_name}` : announcement.target_type}
-                      </Badge>
+                       <Badge>
+                         {announcement.target_type === 'team' ? `Team: ${announcement.target_team_name}` : 
+                          announcement.target_type === 'individual' ? `Individual: ${announcement.target_individual_email}` :
+                          announcement.target_type}
+                       </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="whitespace-pre-wrap">{announcement.content}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {new Date(announcement.created_at).toLocaleDateString()}
-                    </p>
-                  </CardContent>
+                   <CardContent>
+                     <p className="whitespace-pre-wrap">{announcement.content}</p>
+                     {announcement.file_attachments && announcement.file_attachments.length > 0 && (
+                       <div className="mt-3 space-y-2">
+                         <h4 className="text-sm font-medium">Attachments:</h4>
+                         {announcement.file_attachments.map((file, index) => (
+                           <a
+                             key={index}
+                             href={file.url}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             className="block text-sm text-primary hover:underline"
+                           >
+                             📎 {file.name}
+                           </a>
+                         ))}
+                       </div>
+                     )}
+                     <p className="text-xs text-muted-foreground mt-2">
+                       {new Date(announcement.created_at).toLocaleDateString()}
+                     </p>
+                   </CardContent>
                 </Card>
               ))}
             </div>
@@ -454,19 +556,61 @@ export const Tournament = () => {
                     className="min-h-32"
                   />
                 </div>
+
+                {/* File Attachments */}
+                <div>
+                  <Label>File Attachments</Label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files) {
+                          Array.from(e.target.files).forEach(file => handleFileUpload(file));
+                        }
+                      }}
+                      className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                      accept="image/*,.pdf,.doc,.docx,.txt"
+                    />
+                    {announcementForm.file_attachments.length > 0 && (
+                      <div className="space-y-1">
+                        {announcementForm.file_attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-md">
+                            <span className="text-sm">{file.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttachment(index)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <Label>Target</Label>
                   <select
                     value={announcementForm.target_type}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, target_type: e.target.value, target_team_name: '' }))}
+                    onChange={(e) => setAnnouncementForm(prev => ({ 
+                      ...prev, 
+                      target_type: e.target.value, 
+                      target_team_name: '', 
+                      target_individual_email: '' 
+                    }))}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="all">All Participants</option>
                     <option value="debaters">All Debaters</option>
                     <option value="judges">All Judges</option>
                     <option value="team">Specific Team</option>
+                    <option value="individual">Individual Debater</option>
                   </select>
                 </div>
+
                 {announcementForm.target_type === 'team' && (
                   <div>
                     <Label>Team Name</Label>
@@ -482,6 +626,23 @@ export const Tournament = () => {
                     </select>
                   </div>
                 )}
+
+                {announcementForm.target_type === 'individual' && (
+                  <div>
+                    <Label>Individual Email</Label>
+                    <select
+                      value={announcementForm.target_individual_email}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, target_individual_email: e.target.value }))}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">Select a debater</option>
+                      {getAllDebaterEmails().map(email => (
+                        <option key={email} value={email}>{email}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <Button onClick={createAnnouncement} className="w-full">
                   <Send className="h-4 w-4 mr-2" />
                   Send Announcement

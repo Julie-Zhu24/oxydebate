@@ -439,7 +439,9 @@ export type Database = {
           content: string
           created_at: string
           created_by_user_id: string
+          file_attachments: Json | null
           id: string
+          target_individual_email: string | null
           target_team_name: string | null
           target_type: string
           title: string
@@ -449,7 +451,9 @@ export type Database = {
           content: string
           created_at?: string
           created_by_user_id: string
+          file_attachments?: Json | null
           id?: string
+          target_individual_email?: string | null
           target_team_name?: string | null
           target_type: string
           title: string
@@ -459,7 +463,9 @@ export type Database = {
           content?: string
           created_at?: string
           created_by_user_id?: string
+          file_attachments?: Json | null
           id?: string
+          target_individual_email?: string | null
           target_team_name?: string | null
           target_type?: string
           title?: string
