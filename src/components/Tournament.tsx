@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Gavel, LogIn, Plus, Send, Check, X } from 'lucide-react';
+import { Users, Gavel, LogIn, Plus, Send, Check, X, Trash2, Settings, UserPlus } from 'lucide-react';
 
 interface Debater {
   id: string;
@@ -57,6 +57,13 @@ export const Tournament = () => {
   const [portalEmail, setPortalEmail] = useState('');
   const [portalData, setPortalData] = useState<any>(null);
   const [showPortal, setShowPortal] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
+
+  // New team form
+  const [newTeamForm, setNewTeamForm] = useState({
+    name: '', email: '', school: '', partner_name: '', partner_email: '', team_name: ''
+  });
 
   // Registration forms state
   const [debaterForm, setDebaterForm] = useState({
@@ -79,9 +86,92 @@ export const Tournament = () => {
   useEffect(() => {
     if (isAdmin) {
       loadAdminData();
+      loadRegistrationSettings();
     }
     loadAnnouncements();
+    if (!isAdmin) {
+      loadRegistrationSettings();
+    }
   }, [isAdmin]);
+
+  const loadRegistrationSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournament_settings')
+        .select('registration_open')
+        .maybeSingle();
+      
+      if (error) throw error;
+      setRegistrationOpen(data?.registration_open ?? true);
+    } catch (error: any) {
+      console.error('Failed to load registration settings:', error);
+    }
+  };
+
+  const toggleRegistration = async () => {
+    try {
+      const { data: currentSettings } = await supabase
+        .from('tournament_settings')
+        .select('*')
+        .maybeSingle();
+
+      if (currentSettings) {
+        const { error } = await supabase
+          .from('tournament_settings')
+          .update({ registration_open: !registrationOpen })
+          .eq('id', currentSettings.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('tournament_settings')
+          .insert([{ registration_open: !registrationOpen }]);
+        
+        if (error) throw error;
+      }
+
+      setRegistrationOpen(!registrationOpen);
+      toast({ 
+        title: registrationOpen ? 'Registration Closed' : 'Registration Reopened',
+        description: registrationOpen ? 'New registrations are now disabled.' : 'New registrations are now enabled.'
+      });
+    } catch (error: any) {
+      toast({ title: 'Failed to update registration', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const createNewTeam = async () => {
+    try {
+      const { error } = await supabase.from('tournament_debaters').insert([{
+        ...newTeamForm,
+        user_id: user?.id
+      }]);
+
+      if (error) throw error;
+
+      toast({ title: 'Team created successfully!' });
+      setNewTeamForm({ name: '', email: '', school: '', partner_name: '', partner_email: '', team_name: '' });
+      loadAdminData();
+    } catch (error: any) {
+      toast({ title: 'Failed to create team', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const deleteTeam = async (teamId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_debaters')
+        .delete()
+        .eq('id', teamId);
+
+      if (error) throw error;
+
+      toast({ title: 'Team deleted successfully' });
+      loadAdminData();
+    } catch (error: any) {
+      toast({ title: 'Failed to delete team', description: error.message, variant: 'destructive' });
+    }
+  };
 
   const loadAdminData = async () => {
     try {
@@ -287,6 +377,15 @@ export const Tournament = () => {
     return Array.from(emails).sort();
   };
 
+  const getDebatersByEmail = () => {
+    const debaterMap = new Map<string, string>();
+    debaters.forEach(d => {
+      debaterMap.set(d.email, d.name);
+      debaterMap.set(d.partner_email, d.partner_name);
+    });
+    return debaterMap;
+  };
+
   const handleFileUpload = async (file: File) => {
     try {
       const fileExt = file.name.split('.').pop();
@@ -413,7 +512,22 @@ export const Tournament = () => {
   if (isAdmin) {
     return (
       <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold">Tournament Administration</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Tournament Administration</h1>
+          <div className="flex items-center gap-4">
+            <Button
+              variant={registrationOpen ? "destructive" : "default"}
+              onClick={toggleRegistration}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              {registrationOpen ? 'Close Registration' : 'Reopen Registration'}
+            </Button>
+            <Badge variant={registrationOpen ? "default" : "secondary"}>
+              Registration {registrationOpen ? 'Open' : 'Closed'}
+            </Badge>
+          </div>
+        </div>
 
         <Tabs defaultValue="debaters" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -424,13 +538,119 @@ export const Tournament = () => {
           </TabsList>
 
           <TabsContent value="debaters" className="space-y-4">
+            {/* Create New Team Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Create New Team
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Debater 1 Name</Label>
+                    <Input
+                      value={newTeamForm.name}
+                      onChange={(e) => setNewTeamForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="First debater's name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Debater 1 Email</Label>
+                    <Input
+                      type="email"
+                      value={newTeamForm.email}
+                      onChange={(e) => setNewTeamForm(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="first@example.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>School</Label>
+                  <Input
+                    value={newTeamForm.school}
+                    onChange={(e) => setNewTeamForm(prev => ({ ...prev, school: e.target.value }))}
+                    placeholder="School name"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Debater 2 Name</Label>
+                    <Input
+                      value={newTeamForm.partner_name}
+                      onChange={(e) => setNewTeamForm(prev => ({ ...prev, partner_name: e.target.value }))}
+                      placeholder="Second debater's name"
+                    />
+                  </div>
+                  <div>
+                    <Label>Debater 2 Email</Label>
+                    <Input
+                      type="email"
+                      value={newTeamForm.partner_email}
+                      onChange={(e) => setNewTeamForm(prev => ({ ...prev, partner_email: e.target.value }))}
+                      placeholder="second@example.com"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Team Name</Label>
+                  <Input
+                    value={newTeamForm.team_name}
+                    onChange={(e) => setNewTeamForm(prev => ({ ...prev, team_name: e.target.value }))}
+                    placeholder="Choose a team name"
+                  />
+                </div>
+                <Button onClick={createNewTeam} className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Team
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Teams List */}
             <div className="grid gap-4">
               {debaters.map((debater) => (
                 <Card key={debater.id}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>Team: {debater.team_name}</span>
-                      <Badge>{debater.school}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge>{debater.school}</Badge>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Delete Team</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <p>Are you sure you want to delete team "{debater.team_name}"?</p>
+                              <p className="text-sm text-muted-foreground">
+                                This action cannot be undone. This will permanently delete the team registration.
+                              </p>
+                              <div className="flex gap-2 justify-end">
+                                <DialogTrigger asChild>
+                                  <Button variant="outline">Cancel</Button>
+                                </DialogTrigger>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={() => deleteTeam(debater.id)}
+                                >
+                                  Delete Team
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -629,16 +849,21 @@ export const Tournament = () => {
 
                 {announcementForm.target_type === 'individual' && (
                   <div>
-                    <Label>Individual Email</Label>
+                    <Label>Individual Debater</Label>
                     <select
                       value={announcementForm.target_individual_email}
                       onChange={(e) => setAnnouncementForm(prev => ({ ...prev, target_individual_email: e.target.value }))}
                       className="w-full p-2 border rounded-md"
                     >
                       <option value="">Select a debater</option>
-                      {getAllDebaterEmails().map(email => (
-                        <option key={email} value={email}>{email}</option>
-                      ))}
+                      {getAllDebaterEmails().map(email => {
+                        const debaterName = getDebatersByEmail().get(email) || email;
+                        return (
+                          <option key={email} value={email}>
+                            {debaterName} ({email})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}
@@ -663,174 +888,200 @@ export const Tournament = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader className="text-center">
-                <Users className="h-12 w-12 mx-auto mb-2 text-primary" />
-                <CardTitle>Sign up as Debater</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">Register your debate team for the tournament</p>
-              </CardContent>
-            </Card>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Debater Registration</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Your Name</Label>
-                  <Input
-                    value={debaterForm.name}
-                    onChange={(e) => setDebaterForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Your full name"
-                  />
+        {registrationOpen ? (
+          <>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader className="text-center">
+                    <Users className="h-12 w-12 mx-auto mb-2 text-primary" />
+                    <CardTitle>Sign up as Debater</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground">Register your debate team for the tournament</p>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Debater Registration</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Your Name</Label>
+                      <Input
+                        value={debaterForm.name}
+                        onChange={(e) => setDebaterForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Your Email</Label>
+                      <Input
+                        type="email"
+                        value={debaterForm.email}
+                        onChange={(e) => setDebaterForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="your.email@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>School</Label>
+                    <Input
+                      value={debaterForm.school}
+                      onChange={(e) => setDebaterForm(prev => ({ ...prev, school: e.target.value }))}
+                      placeholder="Your school name"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Partner's Name</Label>
+                      <Input
+                        value={debaterForm.partner_name}
+                        onChange={(e) => setDebaterForm(prev => ({ ...prev, partner_name: e.target.value }))}
+                        placeholder="Partner's full name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Partner's Email</Label>
+                      <Input
+                        type="email"
+                        value={debaterForm.partner_email}
+                        onChange={(e) => setDebaterForm(prev => ({ ...prev, partner_email: e.target.value }))}
+                        placeholder="partner.email@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Team Name</Label>
+                    <Input
+                      value={debaterForm.team_name}
+                      onChange={(e) => setDebaterForm(prev => ({ ...prev, team_name: e.target.value }))}
+                      placeholder="Choose a creative team name (doesn't have to be your school's name)"
+                    />
+                  </div>
+                  
+                  <PrivacyContract />
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="debater-privacy"
+                      checked={debaterForm.privacy_accepted}
+                      onCheckedChange={(checked) => setDebaterForm(prev => ({ ...prev, privacy_accepted: !!checked }))}
+                    />
+                    <Label htmlFor="debater-privacy">I accept the privacy agreement</Label>
+                  </div>
+                  
+                  <Button onClick={handleDebaterRegistration} className="w-full">
+                    Register Team
+                  </Button>
                 </div>
-                <div>
-                  <Label>Your Email</Label>
-                  <Input
-                    type="email"
-                    value={debaterForm.email}
-                    onChange={(e) => setDebaterForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>School</Label>
-                <Input
-                  value={debaterForm.school}
-                  onChange={(e) => setDebaterForm(prev => ({ ...prev, school: e.target.value }))}
-                  placeholder="Your school name"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Partner's Name</Label>
-                  <Input
-                    value={debaterForm.partner_name}
-                    onChange={(e) => setDebaterForm(prev => ({ ...prev, partner_name: e.target.value }))}
-                    placeholder="Partner's full name"
-                  />
-                </div>
-                <div>
-                  <Label>Partner's Email</Label>
-                  <Input
-                    type="email"
-                    value={debaterForm.partner_email}
-                    onChange={(e) => setDebaterForm(prev => ({ ...prev, partner_email: e.target.value }))}
-                    placeholder="partner.email@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Team Name</Label>
-                <Input
-                  value={debaterForm.team_name}
-                  onChange={(e) => setDebaterForm(prev => ({ ...prev, team_name: e.target.value }))}
-                  placeholder="Choose a creative team name (doesn't have to be your school's name)"
-                />
-              </div>
-              
-              <PrivacyContract />
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="debater-privacy"
-                  checked={debaterForm.privacy_accepted}
-                  onCheckedChange={(checked) => setDebaterForm(prev => ({ ...prev, privacy_accepted: !!checked }))}
-                />
-                <Label htmlFor="debater-privacy">I accept the privacy agreement</Label>
-              </div>
-              
-              <Button onClick={handleDebaterRegistration} className="w-full">
-                Register Team
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </DialogContent>
+            </Dialog>
 
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader className="text-center">
+                    <Gavel className="h-12 w-12 mx-auto mb-2 text-primary" />
+                    <CardTitle>Apply to be Judge</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-center text-muted-foreground">Apply to judge tournament debates</p>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Judge Application</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Your Name</Label>
+                      <Input
+                        value={judgeForm.name}
+                        onChange={(e) => setJudgeForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Your full name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Your Email</Label>
+                      <Input
+                        type="email"
+                        value={judgeForm.email}
+                        onChange={(e) => setJudgeForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="your.email@example.com"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Judge Experience</Label>
+                    <Textarea
+                      value={judgeForm.judge_experience}
+                      onChange={(e) => setJudgeForm(prev => ({ ...prev, judge_experience: e.target.value }))}
+                      placeholder="Describe your experience judging debates, tournaments, or similar events..."
+                      className="min-h-24"
+                    />
+                  </div>
+                  <div>
+                    <Label>Debate Experience</Label>
+                    <Textarea
+                      value={judgeForm.debate_experience}
+                      onChange={(e) => setJudgeForm(prev => ({ ...prev, debate_experience: e.target.value }))}
+                      placeholder="Describe your experience with debate (as a debater, coach, audience member, etc.)..."
+                      className="min-h-24"
+                    />
+                  </div>
+                  
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> Please note that you might not be selected as a judge. We will review all applications and notify selected judges via email. Please wait for our email confirmation.
+                    </p>
+                  </div>
+                  
+                  <PrivacyContract />
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="judge-privacy"
+                      checked={judgeForm.privacy_accepted}
+                      onCheckedChange={(checked) => setJudgeForm(prev => ({ ...prev, privacy_accepted: !!checked }))}
+                    />
+                    <Label htmlFor="judge-privacy">I accept the privacy agreement</Label>
+                  </div>
+                  
+                  <Button onClick={handleJudgeApplication} className="w-full">
+                    Submit Application
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <>
+            <Card className="opacity-60">
               <CardHeader className="text-center">
-                <Gavel className="h-12 w-12 mx-auto mb-2 text-primary" />
-                <CardTitle>Apply to be Judge</CardTitle>
+                <Users className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">Debater Registration Closed</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-center text-muted-foreground">Apply to judge tournament debates</p>
+                <p className="text-center text-muted-foreground">Registration for debaters has been closed</p>
               </CardContent>
             </Card>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Judge Application</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Your Name</Label>
-                  <Input
-                    value={judgeForm.name}
-                    onChange={(e) => setJudgeForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Your full name"
-                  />
-                </div>
-                <div>
-                  <Label>Your Email</Label>
-                  <Input
-                    type="email"
-                    value={judgeForm.email}
-                    onChange={(e) => setJudgeForm(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Judge Experience</Label>
-                <Textarea
-                  value={judgeForm.judge_experience}
-                  onChange={(e) => setJudgeForm(prev => ({ ...prev, judge_experience: e.target.value }))}
-                  placeholder="Describe your experience judging debates, tournaments, or similar events..."
-                  className="min-h-24"
-                />
-              </div>
-              <div>
-                <Label>Debate Experience</Label>
-                <Textarea
-                  value={judgeForm.debate_experience}
-                  onChange={(e) => setJudgeForm(prev => ({ ...prev, debate_experience: e.target.value }))}
-                  placeholder="Describe your experience with debate (as a debater, coach, audience member, etc.)..."
-                  className="min-h-24"
-                />
-              </div>
-              
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Please note that you might not be selected as a judge. We will review all applications and notify selected judges via email. Please wait for our email confirmation.
-                </p>
-              </div>
-              
-              <PrivacyContract />
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="judge-privacy"
-                  checked={judgeForm.privacy_accepted}
-                  onCheckedChange={(checked) => setJudgeForm(prev => ({ ...prev, privacy_accepted: !!checked }))}
-                />
-                <Label htmlFor="judge-privacy">I accept the privacy agreement</Label>
-              </div>
-              
-              <Button onClick={handleJudgeApplication} className="w-full">
-                Submit Application
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+
+            <Card className="opacity-60">
+              <CardHeader className="text-center">
+                <Gavel className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                <CardTitle className="text-muted-foreground">Judge Applications Closed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-center text-muted-foreground">Applications for judges have been closed</p>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         <Card className="cursor-pointer hover:shadow-lg transition-shadow">
           <CardHeader className="text-center">
