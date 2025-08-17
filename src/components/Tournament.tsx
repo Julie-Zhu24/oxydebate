@@ -221,8 +221,9 @@ export const Tournament = () => {
 
       if (error) throw error;
 
+      // Update UI immediately
+      setDebaters(prev => prev.filter(d => d.id !== teamId));
       toast({ title: 'Team deleted successfully' });
-      loadAdminData();
     } catch (error: any) {
       toast({ title: 'Failed to delete team', description: error.message, variant: 'destructive' });
     }
@@ -237,9 +238,9 @@ export const Tournament = () => {
 
       if (error) throw error;
 
+      // Update UI immediately
+      setJudges(prev => prev.filter(j => j.id !== judgeId));
       toast({ title: 'Judge application deleted successfully' });
-      loadAdminData();
-      setJudgeToDelete(null);
     } catch (error: any) {
       toast({ title: 'Failed to delete judge', description: error.message, variant: 'destructive' });
     }
@@ -547,6 +548,23 @@ export const Tournament = () => {
       loadCheckInData();
     } catch (error: any) {
       toast({ title: 'Check-in failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const deleteAnnouncement = async (announcementId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_announcements')
+        .delete()
+        .eq('id', announcementId);
+
+      if (error) throw error;
+
+      // Update UI immediately
+      setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
+      toast({ title: 'Announcement deleted successfully' });
+    } catch (error: any) {
+      toast({ title: 'Failed to delete announcement', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -1120,10 +1138,10 @@ export const Tournament = () => {
                   </CardContent>
                 </Card>
 
-                {checkIns.length > 0 && (
+                <div className="grid gap-4 md:grid-cols-2">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Checked-in Participants</CardTitle>
+                      <CardTitle className="text-green-600">Checked-in Participants ({checkIns.length})</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
@@ -1141,10 +1159,72 @@ export const Tournament = () => {
                             </div>
                           </div>
                         ))}
+                        {checkIns.length === 0 && (
+                          <p className="text-center text-muted-foreground py-4">No participants checked in yet</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
-                )}
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-red-600">Missing Participants</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {/* Show debaters who haven't checked in */}
+                        {debaters.map((debater) => {
+                          const debater1CheckedIn = checkIns.some(c => c.participant_email === debater.email);
+                          const debater2CheckedIn = checkIns.some(c => c.participant_email === debater.partner_email);
+                          
+                          return (
+                            <div key={debater.id}>
+                              {!debater1CheckedIn && (
+                                <div className="p-2 border border-red-200 rounded bg-red-50">
+                                  <p className="font-medium">{debater.name}</p>
+                                  <p className="text-sm text-muted-foreground">{debater.email}</p>
+                                  <Badge variant="outline">debater</Badge>
+                                </div>
+                              )}
+                              {!debater2CheckedIn && (
+                                <div className="p-2 border border-red-200 rounded bg-red-50 mt-2">
+                                  <p className="font-medium">{debater.partner_name}</p>
+                                  <p className="text-sm text-muted-foreground">{debater.partner_email}</p>
+                                  <Badge variant="outline">debater</Badge>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Show judges who haven't checked in */}
+                        {judges.filter(j => j.status === 'approved').map((judge) => {
+                          const judgeCheckedIn = checkIns.some(c => c.participant_email === judge.email);
+                          
+                          if (!judgeCheckedIn) {
+                            return (
+                              <div key={judge.id} className="p-2 border border-red-200 rounded bg-red-50">
+                                <p className="font-medium">{judge.name}</p>
+                                <p className="text-sm text-muted-foreground">{judge.email}</p>
+                                <Badge variant="outline">judge</Badge>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                        
+                        {/* Check if everyone is present */}
+                        {(() => {
+                          const totalExpected = debaters.length * 2 + judges.filter(j => j.status === 'approved').length;
+                          const totalCheckedIn = checkIns.length;
+                          return totalExpected === totalCheckedIn && totalExpected > 0 ? (
+                            <p className="text-center text-green-600 py-4 font-medium">All participants are present! 🎉</p>
+                          ) : null;
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             ) : (
               <Card>
