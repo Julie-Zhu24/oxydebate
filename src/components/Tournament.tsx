@@ -12,7 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Gavel, LogIn, Plus, Send, Check, X, Trash2, Settings, UserPlus } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Users, Gavel, LogIn, Plus, Send, Check, X, Trash2, Settings, UserPlus, ChevronDown, Clock, UserCheck } from 'lucide-react';
 
 interface Debater {
   id: string;
@@ -46,6 +47,23 @@ interface Announcement {
   created_at: string;
 }
 
+interface CheckInSession {
+  id: string;
+  is_active: boolean;
+  started_at: string;
+  ended_at?: string;
+  created_by_user_id: string;
+}
+
+interface CheckIn {
+  id: string;
+  session_id: string;
+  participant_email: string;
+  participant_name: string;
+  participant_type: string;
+  checked_in_at: string;
+}
+
 export const Tournament = () => {
   const { user } = useAuth();
   const { isAdmin } = useRoles();
@@ -59,6 +77,11 @@ export const Tournament = () => {
   const [showPortal, setShowPortal] = useState(false);
   const [registrationOpen, setRegistrationOpen] = useState(true);
   const [teamToDelete, setTeamToDelete] = useState<string | null>(null);
+  const [judgeToDelete, setJudgeToDelete] = useState<string | null>(null);
+  const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [checkInSession, setCheckInSession] = useState<CheckInSession | null>(null);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const [hasCheckedIn, setHasCheckedIn] = useState(false);
 
   // New team form
   const [newTeamForm, setNewTeamForm] = useState({
@@ -89,10 +112,42 @@ export const Tournament = () => {
       loadRegistrationSettings();
     }
     loadAnnouncements();
+    loadCheckInData();
     if (!isAdmin) {
       loadRegistrationSettings();
     }
   }, [isAdmin]);
+
+  const loadCheckInData = async () => {
+    try {
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('check_in_sessions')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (sessionError) throw sessionError;
+      setCheckInSession(sessionData);
+
+      if (sessionData) {
+        const { data: checkInsData, error: checkInsError } = await supabase
+          .from('check_ins')
+          .select('*')
+          .eq('session_id', sessionData.id);
+
+        if (checkInsError) throw checkInsError;
+        setCheckIns(checkInsData || []);
+
+        // Check if current user has already checked in
+        if (portalEmail) {
+          const userCheckIn = checkInsData?.find(c => c.participant_email === portalEmail);
+          setHasCheckedIn(!!userCheckIn);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to load check-in data:', error);
+    }
+  };
 
   const loadRegistrationSettings = async () => {
     try {
@@ -170,6 +225,23 @@ export const Tournament = () => {
       loadAdminData();
     } catch (error: any) {
       toast({ title: 'Failed to delete team', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const deleteJudge = async (judgeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_judges')
+        .delete()
+        .eq('id', judgeId);
+
+      if (error) throw error;
+
+      toast({ title: 'Judge application deleted successfully' });
+      loadAdminData();
+      setJudgeToDelete(null);
+    } catch (error: any) {
+      toast({ title: 'Failed to delete judge', description: error.message, variant: 'destructive' });
     }
   };
 
@@ -417,6 +489,67 @@ export const Tournament = () => {
     }
   };
 
+  const startCheckIn = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.from('check_in_sessions').insert([{
+        created_by_user_id: user.id,
+        is_active: true
+      }]);
+
+      if (error) throw error;
+
+      toast({ title: 'Check-in started!', description: 'Participants can now check in.' });
+      loadCheckInData();
+    } catch (error: any) {
+      toast({ title: 'Failed to start check-in', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const endCheckIn = async () => {
+    if (!checkInSession) return;
+
+    try {
+      const { error } = await supabase
+        .from('check_in_sessions')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('id', checkInSession.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Check-in ended!', description: 'No more participants can check in.' });
+      loadCheckInData();
+    } catch (error: any) {
+      toast({ title: 'Failed to end check-in', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const participantCheckIn = async () => {
+    if (!checkInSession || !portalData || hasCheckedIn) return;
+
+    try {
+      const participantName = portalData.type === 'debater' 
+        ? (portalData.isPartner ? portalData.data.partner_name : portalData.data.name)
+        : portalData.data.name;
+
+      const { error } = await supabase.from('check_ins').insert([{
+        session_id: checkInSession.id,
+        participant_email: portalEmail,
+        participant_name: participantName,
+        participant_type: portalData.type
+      }]);
+
+      if (error) throw error;
+
+      toast({ title: 'Checked in successfully!', description: 'You have been marked as present.' });
+      setHasCheckedIn(true);
+      loadCheckInData();
+    } catch (error: any) {
+      toast({ title: 'Check-in failed', description: error.message, variant: 'destructive' });
+    }
+  };
+
   const removeAttachment = (index: number) => {
     setAnnouncementForm(prev => ({
       ...prev,
@@ -464,6 +597,32 @@ export const Tournament = () => {
                   <p>{portalData.data.partner_name} ({portalData.data.partner_email})</p>
                 </div>
               </div>
+            )}
+
+            {/* Check-in Section */}
+            {checkInSession && checkInSession.is_active && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5" />
+                    Check-in Required
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4">Please check in to confirm your presence.</p>
+                  <Button 
+                    onClick={participantCheckIn}
+                    disabled={hasCheckedIn}
+                    className="w-full"
+                  >
+                    {hasCheckedIn ? (
+                      <><Check className="mr-2 h-4 w-4" /> Checked In</>
+                    ) : (
+                      <><UserCheck className="mr-2 h-4 w-4" /> Check In</>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
             <div>
@@ -530,23 +689,31 @@ export const Tournament = () => {
         </div>
 
         <Tabs defaultValue="debaters" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="debaters">Debaters ({debaters.length})</TabsTrigger>
             <TabsTrigger value="judges">Judges ({judges.length})</TabsTrigger>
             <TabsTrigger value="announcements">Announcements</TabsTrigger>
             <TabsTrigger value="send">Send Announcement</TabsTrigger>
+            <TabsTrigger value="checkin">Check-in</TabsTrigger>
           </TabsList>
 
           <TabsContent value="debaters" className="space-y-4">
-            {/* Create New Team Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  Create New Team
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            {/* Create New Team Section - Collapsible */}
+            <Collapsible open={createTeamOpen} onOpenChange={setCreateTeamOpen}>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/50">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="h-5 w-5" />
+                        Create New Team
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${createTeamOpen ? 'rotate-180' : ''}`} />
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Debater 1 Name</Label>
@@ -601,12 +768,14 @@ export const Tournament = () => {
                     placeholder="Choose a team name"
                   />
                 </div>
-                <Button onClick={createNewTeam} className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Team
-                </Button>
-              </CardContent>
-            </Card>
+                    <Button onClick={createNewTeam} className="w-full">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Team
+                    </Button>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             {/* Teams List */}
             <div className="grid gap-4">
@@ -694,18 +863,53 @@ export const Tournament = () => {
                         Applied: {new Date(judge.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    {judge.status === 'pending' && (
-                      <div className="flex gap-2 mt-4">
-                        <Button size="sm" onClick={() => updateJudgeStatus(judge.id, 'approved')}>
-                          <Check className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => updateJudgeStatus(judge.id, 'rejected')}>
-                          <X className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
+                    <div className="flex gap-2 mt-4">
+                      {judge.status === 'pending' && (
+                        <>
+                          <Button size="sm" onClick={() => updateJudgeStatus(judge.id, 'approved')}>
+                            <Check className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => updateJudgeStatus(judge.id, 'rejected')}>
+                            <X className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Judge Application</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <p>Are you sure you want to delete the judge application for "{judge.name}"?</p>
+                            <p className="text-sm text-muted-foreground">
+                              This will permanently remove their application and they will lose access to the portal.
+                            </p>
+                            <div className="flex gap-2 justify-end">
+                              <DialogTrigger asChild>
+                                <Button variant="outline">Cancel</Button>
+                              </DialogTrigger>
+                              <Button 
+                                variant="destructive" 
+                                onClick={() => deleteJudge(judge.id)}
+                              >
+                                Delete Application
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -874,6 +1078,82 @@ export const Tournament = () => {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="checkin" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Check-in Management</h2>
+              <div className="flex gap-2">
+                {checkInSession && checkInSession.is_active ? (
+                  <Button onClick={endCheckIn} variant="destructive">
+                    <Clock className="mr-2 h-4 w-4" />
+                    End Check-in
+                  </Button>
+                ) : (
+                  <Button onClick={startCheckIn}>
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Start Check-in
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {checkInSession ? (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Check-in Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Status</p>
+                        <Badge variant={checkInSession.is_active ? "default" : "secondary"}>
+                          {checkInSession.is_active ? "Active" : "Ended"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Participants Checked In</p>
+                        <p className="text-2xl font-bold">{checkIns.length}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {checkIns.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Checked-in Participants</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {checkIns.map((checkIn) => (
+                          <div key={checkIn.id} className="flex items-center justify-between p-2 border rounded">
+                            <div>
+                              <p className="font-medium">{checkIn.participant_name}</p>
+                              <p className="text-sm text-muted-foreground">{checkIn.participant_email}</p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant="outline">{checkIn.participant_type}</Badge>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(checkIn.checked_in_at).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="text-center py-8">
+                  <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No active check-in session</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>

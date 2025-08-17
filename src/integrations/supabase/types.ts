@@ -47,6 +47,74 @@ export type Database = {
         }
         Relationships: []
       }
+      check_in_sessions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      check_ins: {
+        Row: {
+          checked_in_at: string
+          created_at: string
+          id: string
+          participant_email: string
+          participant_name: string
+          participant_type: string
+          session_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          created_at?: string
+          id?: string
+          participant_email: string
+          participant_name: string
+          participant_type: string
+          session_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          created_at?: string
+          id?: string
+          participant_email?: string
+          participant_name?: string
+          participant_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "check_in_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
