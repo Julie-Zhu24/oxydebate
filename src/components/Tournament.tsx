@@ -118,6 +118,14 @@ export const Tournament = () => {
     }
   }, [isAdmin]);
 
+  // Update check-in status when portal email changes
+  useEffect(() => {
+    if (portalEmail && checkInSession) {
+      const userCheckIn = checkIns.find(c => c.participant_email === portalEmail);
+      setHasCheckedIn(!!userCheckIn);
+    }
+  }, [portalEmail, checkIns, checkInSession]);
+
   const loadCheckInData = async () => {
     try {
       const { data: sessionData, error: sessionError } = await supabase
@@ -143,6 +151,10 @@ export const Tournament = () => {
           const userCheckIn = checkInsData?.find(c => c.participant_email === portalEmail);
           setHasCheckedIn(!!userCheckIn);
         }
+      } else {
+        // No active session, reset check-ins and status
+        setCheckIns([]);
+        setHasCheckedIn(false);
       }
     } catch (error: any) {
       console.error('Failed to load check-in data:', error);
@@ -346,6 +358,16 @@ export const Tournament = () => {
         supabase.from('tournament_judges').select('*').eq('email', portalEmail).maybeSingle()
       ]);
 
+      // Check for errors that indicate record might have been deleted
+      if (debaterRes.error || partnerRes.error || judgeRes.error) {
+        toast({ 
+          title: 'Access Error', 
+          description: 'Unable to verify registration. Please contact organizers.',
+          variant: 'destructive' 
+        });
+        return;
+      }
+
       const debaterData = debaterRes.data;
       const partnerData = partnerRes.data;
       const judgeData = judgeRes.data;
@@ -359,6 +381,12 @@ export const Tournament = () => {
         );
         setPortalData({ type: 'debater', data: debaterData, announcements: teamAnnouncements });
         setShowPortal(true);
+        
+        // Check if user has checked in for current session
+        if (checkInSession) {
+          const userCheckIn = checkIns.find(c => c.participant_email === portalEmail);
+          setHasCheckedIn(!!userCheckIn);
+        }
       } else if (partnerData) {
         // Partner can access the portal using their team's registration
         const teamAnnouncements = announcements.filter(a => 
@@ -369,6 +397,12 @@ export const Tournament = () => {
         );
         setPortalData({ type: 'debater', data: partnerData, announcements: teamAnnouncements, isPartner: true });
         setShowPortal(true);
+        
+        // Check if user has checked in for current session
+        if (checkInSession) {
+          const userCheckIn = checkIns.find(c => c.participant_email === portalEmail);
+          setHasCheckedIn(!!userCheckIn);
+        }
       } else if (judgeData) {
         if (judgeData.status === 'approved') {
           const judgeAnnouncements = announcements.filter(a => 
@@ -376,6 +410,12 @@ export const Tournament = () => {
           );
           setPortalData({ type: 'judge', data: judgeData, announcements: judgeAnnouncements });
           setShowPortal(true);
+          
+          // Check if user has checked in for current session
+          if (checkInSession) {
+            const userCheckIn = checkIns.find(c => c.participant_email === portalEmail);
+            setHasCheckedIn(!!userCheckIn);
+          }
         } else {
           toast({ 
             title: 'Application Pending', 
@@ -385,8 +425,8 @@ export const Tournament = () => {
         }
       } else {
         toast({ 
-          title: 'Email not found', 
-          description: 'No registration found with this email address.',
+          title: 'Access Denied', 
+          description: 'No valid registration found with this email address. Your registration may have been removed.',
           variant: 'destructive' 
         });
       }
@@ -494,6 +534,13 @@ export const Tournament = () => {
     if (!user) return;
 
     try {
+      // First end any existing active sessions
+      await supabase
+        .from('check_in_sessions')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('is_active', true);
+
+      // Create new session
       const { error } = await supabase.from('check_in_sessions').insert([{
         created_by_user_id: user.id,
         is_active: true
@@ -941,11 +988,46 @@ export const Tournament = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>{announcement.title}</span>
-                       <Badge>
-                         {announcement.target_type === 'team' ? `Team: ${announcement.target_team_name}` : 
-                          announcement.target_type === 'individual' ? `Individual: ${announcement.target_individual_email}` :
-                          announcement.target_type}
-                       </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge>
+                          {announcement.target_type === 'team' ? `Team: ${announcement.target_team_name}` : 
+                           announcement.target_type === 'individual' ? `Individual: ${announcement.target_individual_email}` :
+                           announcement.target_type}
+                        </Badge>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Delete Announcement</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <p>Are you sure you want to delete the announcement "{announcement.title}"?</p>
+                              <p className="text-sm text-muted-foreground">
+                                This action cannot be undone.
+                              </p>
+                              <div className="flex gap-2 justify-end">
+                                <DialogTrigger asChild>
+                                  <Button variant="outline">Cancel</Button>
+                                </DialogTrigger>
+                                <Button 
+                                  variant="destructive" 
+                                  onClick={() => deleteAnnouncement(announcement.id)}
+                                >
+                                  Delete Announcement
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                    <CardContent>
