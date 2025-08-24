@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, Title } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -269,7 +269,7 @@ const Tournament = () => {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
-            <Title>Tournament Registration Closed</Title>
+            <CardTitle>Tournament Registration Closed</CardTitle>
           </CardHeader>
           <CardContent>
             <p>Tournament registration is currently closed. Please check back later.</p>
@@ -296,7 +296,7 @@ const Tournament = () => {
       {isAdmin && (
         <Card className="mb-8">
           <CardHeader>
-            <Title>Admin Panel</Title>
+            <CardTitle>Admin Panel</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Check-in Management */}
@@ -446,7 +446,7 @@ const Tournament = () => {
       {user && activeSession && !isAdmin && (
         <Card className="mb-8">
           <CardHeader>
-            <Title>Check In</Title>
+            <CardTitle>Check In</CardTitle>
           </CardHeader>
           <CardContent>
             <Button onClick={handleCheckIn} className="w-full">
@@ -459,7 +459,7 @@ const Tournament = () => {
       {/* Announcements */}
       <Card className="mb-8">
         <CardHeader>
-          <Title>Announcements</Title>
+          <CardTitle>Announcements</CardTitle>
         </CardHeader>
         <CardContent>
           {announcements.length > 0 ? (
@@ -486,7 +486,7 @@ const Tournament = () => {
           {/* Debater Registration */}
           <Card>
             <CardHeader>
-              <Title>Register as Debater</Title>
+              <CardTitle>Register as Debater</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleDebaterSubmit} className="space-y-4">
@@ -536,7 +536,7 @@ const Tournament = () => {
           {/* Judge Application */}
           <Card>
             <CardHeader>
-              <Title>Apply as Judge</Title>
+              <CardTitle>Apply as Judge</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleJudgeSubmit} className="space-y-4">
