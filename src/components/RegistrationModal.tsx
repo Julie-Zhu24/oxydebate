@@ -78,11 +78,7 @@ By participating in the Oxymorona Tournament, you agree to the following:
 - You may request deletion of your data at any time by contacting us
 - Essential records may be kept for historical tournament documentation
 
-Contact Information:
-Tournament Director: [email@tournament.org]
-Data Protection Officer: [privacy@tournament.org]
-
-Last Updated: [Current Date]
+Contact Information: juliezhu.ziyang@gmail.com
 `;
 
   return (
@@ -100,8 +96,8 @@ Last Updated: [Current Date]
             {/* Privacy Policy */}
             <div>
               <h3 className="font-semibold mb-3">Privacy Policy & Terms</h3>
-              <div className="bg-muted p-4 rounded-lg text-sm max-h-40 overflow-y-auto">
-                <pre className="whitespace-pre-wrap font-sans">{privacyContract}</pre>
+              <div className="bg-muted p-4 rounded-lg text-xs max-h-40 overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-sans text-muted-foreground leading-relaxed">{privacyContract}</pre>
               </div>
               
               <div className="flex items-center space-x-2 mt-3">
@@ -121,6 +117,14 @@ Last Updated: [Current Date]
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <h3 className="font-semibold">Registration Information</h3>
+              
+              {type === 'judge' && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    <strong>Note:</strong> Judge applications are subject to approval. We will review your application and contact you within one week to confirm your status. Not all applications may be approved based on tournament requirements.
+                  </p>
+                </div>
+              )}
               
               {type === 'debater' ? (
                 <>
