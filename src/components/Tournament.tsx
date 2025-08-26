@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard';
 import { TournamentAdmin } from '@/components/TournamentAdmin';
+import { RegistrationModal } from '@/components/RegistrationModal';
+import { Users, Gavel, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Tournament = () => {
@@ -35,13 +37,9 @@ const Tournament = () => {
   const [isInPortal, setIsInPortal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   
-  // Form states
-  const [debaterForm, setDebaterForm] = useState({
-    name: '', email: '', school: '', partner_name: '', partner_email: '', team_name: ''
-  });
-  const [judgeForm, setJudgeForm] = useState({
-    name: '', email: '', debate_experience: '', judge_experience: ''
-  });
+  // Modal states
+  const [isDebaterModalOpen, setIsDebaterModalOpen] = useState(false);
+  const [isJudgeModalOpen, setIsJudgeModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDebaters();
@@ -82,11 +80,10 @@ const Tournament = () => {
     setTournamentSettings(data);
   };
 
-  const handleDebaterSubmit = async (e) => {
-    e.preventDefault();
+  const handleDebaterSubmit = async (formData) => {
     try {
       const { error } = await supabase.from('tournament_debaters').insert([{
-        ...debaterForm,
+        ...formData,
         user_id: user?.id,
         privacy_accepted: true
       }]);
@@ -94,18 +91,16 @@ const Tournament = () => {
       if (error) throw error;
       
       toast.success('Registration submitted successfully!');
-      setDebaterForm({ name: '', email: '', school: '', partner_name: '', partner_email: '', team_name: '' });
       fetchDebaters();
     } catch (error) {
       toast.error('Registration failed: ' + error.message);
     }
   };
 
-  const handleJudgeSubmit = async (e) => {
-    e.preventDefault();
+  const handleJudgeSubmit = async (formData) => {
     try {
       const { error } = await supabase.from('tournament_judges').insert([{
-        ...judgeForm,
+        ...formData,
         user_id: user?.id,
         privacy_accepted: true
       }]);
@@ -113,7 +108,6 @@ const Tournament = () => {
       if (error) throw error;
       
       toast.success('Judge application submitted successfully!');
-      setJudgeForm({ name: '', email: '', debate_experience: '', judge_experience: '' });
       fetchJudges();
     } catch (error) {
       toast.error('Application failed: ' + error.message);
@@ -556,90 +550,39 @@ const Tournament = () => {
         {/* Registration Section - Only show if registration is open */}
         {tournamentSettings?.registration_open && (
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Debater Registration */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Register as Debater</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleDebaterSubmit} className="space-y-4">
-                  <Input
-                    placeholder="Your name"
-                    value={debaterForm.name}
-                    onChange={(e) => setDebaterForm({...debaterForm, name: e.target.value})}
-                    required
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Your email"
-                    value={debaterForm.email}
-                    onChange={(e) => setDebaterForm({...debaterForm, email: e.target.value})}
-                    required
-                  />
-                  <Input
-                    placeholder="School"
-                    value={debaterForm.school}
-                    onChange={(e) => setDebaterForm({...debaterForm, school: e.target.value})}
-                    required
-                  />
-                  <Input
-                    placeholder="Partner's name"
-                    value={debaterForm.partner_name}
-                    onChange={(e) => setDebaterForm({...debaterForm, partner_name: e.target.value})}
-                    required
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Partner's email"
-                    value={debaterForm.partner_email}
-                    onChange={(e) => setDebaterForm({...debaterForm, partner_email: e.target.value})}
-                    required
-                  />
-                  <Input
-                    placeholder="Team name"
-                    value={debaterForm.team_name}
-                    onChange={(e) => setDebaterForm({...debaterForm, team_name: e.target.value})}
-                    required
-                  />
-                  <Button type="submit" className="w-full">Register Team</Button>
-                </form>
+            {/* Debater Registration Button */}
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => setIsDebaterModalOpen(true)}>
+              <CardContent className="p-8 text-center">
+                <div className="mb-6">
+                  <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Users className="h-8 w-8 text-primary" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-3">Register as Debater</h3>
+                <p className="text-muted-foreground mb-6">
+                  Join the tournament as a debating team. Compete with your partner for victory and glory.
+                </p>
+                <Button size="lg" className="w-full">
+                  Start Registration
+                </Button>
               </CardContent>
             </Card>
 
-            {/* Judge Application */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Apply as Judge</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleJudgeSubmit} className="space-y-4">
-                  <Input
-                    placeholder="Your name"
-                    value={judgeForm.name}
-                    onChange={(e) => setJudgeForm({...judgeForm, name: e.target.value})}
-                    required
-                  />
-                  <Input
-                    type="email"
-                    placeholder="Your email"
-                    value={judgeForm.email}
-                    onChange={(e) => setJudgeForm({...judgeForm, email: e.target.value})}
-                    required
-                  />
-                  <Textarea
-                    placeholder="Your debate experience"
-                    value={judgeForm.debate_experience}
-                    onChange={(e) => setJudgeForm({...judgeForm, debate_experience: e.target.value})}
-                    required
-                  />
-                  <Textarea
-                    placeholder="Your judging experience"
-                    value={judgeForm.judge_experience}
-                    onChange={(e) => setJudgeForm({...judgeForm, judge_experience: e.target.value})}
-                    required
-                  />
-                  <Button type="submit" className="w-full">Submit Application</Button>
-                </form>
+            {/* Judge Application Button */}
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => setIsJudgeModalOpen(true)}>
+              <CardContent className="p-8 text-center">
+                <div className="mb-6">
+                  <div className="w-16 h-16 mx-auto bg-secondary/10 rounded-full flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
+                    <Gavel className="h-8 w-8 text-secondary" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-3">Apply as Judge</h3>
+                <p className="text-muted-foreground mb-6">
+                  Help evaluate debates and ensure fair competition. Share your expertise with the community.
+                </p>
+                <Button size="lg" variant="secondary" className="w-full">
+                  Submit Application
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -656,6 +599,21 @@ const Tournament = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Registration Modals */}
+        <RegistrationModal
+          isOpen={isDebaterModalOpen}
+          onClose={() => setIsDebaterModalOpen(false)}
+          type="debater"
+          onSubmit={handleDebaterSubmit}
+        />
+        
+        <RegistrationModal
+          isOpen={isJudgeModalOpen}
+          onClose={() => setIsJudgeModalOpen(false)}
+          type="judge"
+          onSubmit={handleJudgeSubmit}
+        />
       </div>
     </div>
   );
