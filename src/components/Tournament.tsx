@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TournamentLeaderboard } from '@/components/TournamentLeaderboard';
+import { TournamentAdmin } from '@/components/TournamentAdmin';
 import { toast } from 'sonner';
 
 const Tournament = () => {
@@ -267,21 +270,55 @@ const Tournament = () => {
   if (!tournamentSettings?.registration_open && !isAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card>
+        <h1 className="text-3xl font-bold mb-8">Tournament</h1>
+        
+        {/* Announcements */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Announcements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {announcements.length > 0 ? (
+              <div className="space-y-4">
+                {announcements.map(announcement => (
+                  <div key={announcement.id} className="p-4 border rounded-lg">
+                    <h3 className="font-semibold">{announcement.title}</h3>
+                    <p className="text-muted-foreground mt-1">{announcement.content}</p>
+                    <small className="text-xs text-muted-foreground">
+                      {new Date(announcement.created_at).toLocaleDateString()}
+                    </small>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No announcements yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Check In Section for Participants */}
+        {user && activeSession && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Check In</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleCheckIn} className="w-full">
+                Check In for Tournament
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Leaderboard - Always visible */}
+        <TournamentLeaderboard />
+
+        <Card className="mt-8">
           <CardHeader>
             <CardTitle>Tournament Registration Closed</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>Tournament registration is currently closed. Please check back later.</p>
-            
-            {user && activeSession && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-2">Check In</h3>
-                <Button onClick={handleCheckIn} className="w-full">
-                  Check In for Tournament
-                </Button>
-              </div>
-            )}
+            <p>Tournament registration is currently closed. Please check back later for future tournaments.</p>
           </CardContent>
         </Card>
       </div>
@@ -480,97 +517,121 @@ const Tournament = () => {
         </CardContent>
       </Card>
 
-      {/* Registration Forms */}
-      {tournamentSettings?.registration_open && (
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Debater Registration */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Register as Debater</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleDebaterSubmit} className="space-y-4">
-                <Input
-                  placeholder="Your name"
-                  value={debaterForm.name}
-                  onChange={(e) => setDebaterForm({...debaterForm, name: e.target.value})}
-                  required
-                />
-                <Input
-                  type="email"
-                  placeholder="Your email"
-                  value={debaterForm.email}
-                  onChange={(e) => setDebaterForm({...debaterForm, email: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="School"
-                  value={debaterForm.school}
-                  onChange={(e) => setDebaterForm({...debaterForm, school: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="Partner's name"
-                  value={debaterForm.partner_name}
-                  onChange={(e) => setDebaterForm({...debaterForm, partner_name: e.target.value})}
-                  required
-                />
-                <Input
-                  type="email"
-                  placeholder="Partner's email"
-                  value={debaterForm.partner_email}
-                  onChange={(e) => setDebaterForm({...debaterForm, partner_email: e.target.value})}
-                  required
-                />
-                <Input
-                  placeholder="Team name"
-                  value={debaterForm.team_name}
-                  onChange={(e) => setDebaterForm({...debaterForm, team_name: e.target.value})}
-                  required
-                />
-                <Button type="submit" className="w-full">Register Team</Button>
-              </form>
-            </CardContent>
-          </Card>
+      {/* Main Tournament Interface */}
+      <Tabs defaultValue="leaderboard" className="space-y-6">
+        <TabsList className={`grid w-full ${isAdmin && tournamentSettings?.registration_open ? 'grid-cols-3' : isAdmin || tournamentSettings?.registration_open ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+          {tournamentSettings?.registration_open && (
+            <TabsTrigger value="registration">Registration</TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger value="management">Tournament Management</TabsTrigger>
+          )}
+        </TabsList>
 
-          {/* Judge Application */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Apply as Judge</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleJudgeSubmit} className="space-y-4">
-                <Input
-                  placeholder="Your name"
-                  value={judgeForm.name}
-                  onChange={(e) => setJudgeForm({...judgeForm, name: e.target.value})}
-                  required
-                />
-                <Input
-                  type="email"
-                  placeholder="Your email"
-                  value={judgeForm.email}
-                  onChange={(e) => setJudgeForm({...judgeForm, email: e.target.value})}
-                  required
-                />
-                <Textarea
-                  placeholder="Your debate experience"
-                  value={judgeForm.debate_experience}
-                  onChange={(e) => setJudgeForm({...judgeForm, debate_experience: e.target.value})}
-                  required
-                />
-                <Textarea
-                  placeholder="Your judging experience"
-                  value={judgeForm.judge_experience}
-                  onChange={(e) => setJudgeForm({...judgeForm, judge_experience: e.target.value})}
-                  required
-                />
-                <Button type="submit" className="w-full">Submit Application</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <TabsContent value="leaderboard">
+          <TournamentLeaderboard />
+        </TabsContent>
+
+        {tournamentSettings?.registration_open && (
+          <TabsContent value="registration">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Debater Registration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Register as Debater</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleDebaterSubmit} className="space-y-4">
+                    <Input
+                      placeholder="Your name"
+                      value={debaterForm.name}
+                      onChange={(e) => setDebaterForm({...debaterForm, name: e.target.value})}
+                      required
+                    />
+                    <Input
+                      type="email"
+                      placeholder="Your email"
+                      value={debaterForm.email}
+                      onChange={(e) => setDebaterForm({...debaterForm, email: e.target.value})}
+                      required
+                    />
+                    <Input
+                      placeholder="School"
+                      value={debaterForm.school}
+                      onChange={(e) => setDebaterForm({...debaterForm, school: e.target.value})}
+                      required
+                    />
+                    <Input
+                      placeholder="Partner's name"
+                      value={debaterForm.partner_name}
+                      onChange={(e) => setDebaterForm({...debaterForm, partner_name: e.target.value})}
+                      required
+                    />
+                    <Input
+                      type="email"
+                      placeholder="Partner's email"
+                      value={debaterForm.partner_email}
+                      onChange={(e) => setDebaterForm({...debaterForm, partner_email: e.target.value})}
+                      required
+                    />
+                    <Input
+                      placeholder="Team name"
+                      value={debaterForm.team_name}
+                      onChange={(e) => setDebaterForm({...debaterForm, team_name: e.target.value})}
+                      required
+                    />
+                    <Button type="submit" className="w-full">Register Team</Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Judge Application */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Apply as Judge</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleJudgeSubmit} className="space-y-4">
+                    <Input
+                      placeholder="Your name"
+                      value={judgeForm.name}
+                      onChange={(e) => setJudgeForm({...judgeForm, name: e.target.value})}
+                      required
+                    />
+                    <Input
+                      type="email"
+                      placeholder="Your email"
+                      value={judgeForm.email}
+                      onChange={(e) => setJudgeForm({...judgeForm, email: e.target.value})}
+                      required
+                    />
+                    <Textarea
+                      placeholder="Your debate experience"
+                      value={judgeForm.debate_experience}
+                      onChange={(e) => setJudgeForm({...judgeForm, debate_experience: e.target.value})}
+                      required
+                    />
+                    <Textarea
+                      placeholder="Your judging experience"
+                      value={judgeForm.judge_experience}
+                      onChange={(e) => setJudgeForm({...judgeForm, judge_experience: e.target.value})}
+                      required
+                    />
+                    <Button type="submit" className="w-full">Submit Application</Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="management">
+            <TournamentAdmin />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 };

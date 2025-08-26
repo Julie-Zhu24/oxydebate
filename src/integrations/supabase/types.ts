@@ -622,6 +622,71 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_matches: {
+        Row: {
+          created_at: string
+          id: string
+          opp_team_name: string
+          prop_team_name: string
+          round_id: string
+          updated_at: string
+          winner_team: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          opp_team_name: string
+          prop_team_name: string
+          round_id: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          opp_team_name?: string
+          prop_team_name?: string
+          round_id?: string
+          updated_at?: string
+          winner_team?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_round_id_fkey"
+            columns: ["round_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_rounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_rounds: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          round_name: string
+          round_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_name: string
+          round_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          round_name?: string
+          round_number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tournament_settings: {
         Row: {
           created_at: string
@@ -642,6 +707,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tournament_speaker_scores: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          speaker_name: string
+          speaker_score: number
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          speaker_name: string
+          speaker_score?: number
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          speaker_name?: string
+          speaker_score?: number
+          team_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_speaker_scores_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -676,6 +779,28 @@ export type Database = {
           user_id: string | null
           username: string | null
           win_rate: number | null
+          wins: number | null
+        }
+        Relationships: []
+      }
+      tournament_individual_leaderboard: {
+        Row: {
+          avg_score: number | null
+          individual_rank: number | null
+          rounds_spoken: number | null
+          speaker_name: string | null
+          team_name: string | null
+        }
+        Relationships: []
+      }
+      tournament_team_leaderboard: {
+        Row: {
+          avg_team_score: number | null
+          captain_name: string | null
+          losses: number | null
+          partner_name: string | null
+          team_name: string | null
+          team_rank: number | null
           wins: number | null
         }
         Relationships: []
