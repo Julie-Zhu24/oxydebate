@@ -83,14 +83,14 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <article className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover-scale transition-shadow">
               <div className="flex items-center gap-4 mb-4">
-                <img src="/public/placeholder.svg" alt="Developer avatar placeholder" className="w-16 h-16 rounded-full border border-border" loading="lazy" />
+                <img src="/lovable-uploads/f5512394-e22b-40b2-9af4-2aa55972453d.png" alt="Julie Zhu profile photo" className="w-16 h-16 rounded-full border border-border object-cover" loading="lazy" />
                 <div>
-                  <h3 className="text-lg font-medium">Alex Rivera</h3>
-                  <p className="text-muted-foreground text-sm">Frontend Developer</p>
+                  <h3 className="text-lg font-medium">Julie Zhu</h3>
+                  <p className="text-muted-foreground text-sm">Website Developer</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Passionate about crafting delightful, performant interfaces. Loves clean architecture, accessibility, and scalable design systems.
+                Julie is dedicated to creating a community where debate lovers can connect and grow together. With a strong interest in computer science, she combines her curiosity with creativity. Inspired by both her academic passions and her love for debate, she came up with the idea of developing this website as a space for like-minded students to share, learn, and inspire one another.
               </p>
             </article>
 
