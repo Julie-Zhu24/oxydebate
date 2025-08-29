@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TournamentLeaderboard } from '@/components/TournamentLeaderboard';
 import { TournamentAdmin } from '@/components/TournamentAdmin';
+import { TournamentAnnouncements } from '@/components/TournamentAnnouncements';
 import { RegistrationModal } from '@/components/RegistrationModal';
 import { Users, Gavel, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
@@ -344,25 +345,8 @@ const Tournament = () => {
 
             <Separator />
 
-            {/* Create Announcement */}
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Create Announcement</h3>
-              <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
-                <Input
-                  placeholder="Announcement title"
-                  value={newAnnouncement.title}
-                  onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
-                  required
-                />
-                <Textarea
-                  placeholder="Announcement content"
-                  value={newAnnouncement.content}
-                  onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
-                  required
-                />
-                <Button type="submit">Create Announcement</Button>
-              </form>
-            </div>
+            {/* Tournament Announcements */}
+            <TournamentAnnouncements />
 
             <Separator />
 
@@ -417,31 +401,6 @@ const Tournament = () => {
             </div>
 
             <Separator />
-
-            {/* Announcements Management */}
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Manage Announcements</h3>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {announcements.map(announcement => (
-                  <div key={announcement.id} className="flex items-center justify-between p-2 border rounded">
-                    <div>
-                      <strong>{announcement.title}</strong>
-                      <br />
-                      <small className="text-muted-foreground">
-                        {new Date(announcement.created_at).toLocaleDateString()}
-                      </small>
-                    </div>
-                    <Button 
-                      onClick={() => deleteAnnouncement(announcement.id)} 
-                      variant="destructive" 
-                      size="sm"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
 
