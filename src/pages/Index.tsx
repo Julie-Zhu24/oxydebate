@@ -89,22 +89,36 @@ const Index = () => {
                   <p className="text-muted-foreground text-sm">Website Developer</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mb-3">
                 Julie is dedicated to creating a community where debate lovers can connect and grow together. With a strong interest in computer science, she combines her curiosity with creativity. Inspired by both her academic passions and her love for debate, she came up with the idea of developing this website as a space for like-minded students to share, learn, and inspire one another.
               </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                <li>President of Oxymorona Debate Club</li>
+                <li>3 years debate experience</li>
+                <li>Joined multiple international tournaments including Papillon WSDC, Transpacific WSDC</li>
+                <li>Won gold speaker award in East Asia WSDC</li>
+                <li>Have judged Public Forum rounds</li>
+              </ul>
             </article>
 
             <article className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover-scale transition-shadow">
               <div className="flex items-center gap-4 mb-4">
-                <img src="/public/placeholder.svg" alt="Developer avatar placeholder" className="w-16 h-16 rounded-full border border-border" loading="lazy" />
+                <img src="/lovable-uploads/e8c7daf1-e0a4-4f0b-b245-6b3ee9a50666.png" alt="Lina Lu profile photo" className="w-16 h-16 rounded-full border border-border object-cover" loading="lazy" />
                 <div>
-                  <h3 className="text-lg font-medium">Jordan Lee</h3>
-                  <p className="text-muted-foreground text-sm">Backend & Infra</p>
+                  <h3 className="text-lg font-medium">Lina Lu</h3>
+                  <p className="text-muted-foreground text-sm">Vice President</p>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Focused on reliable systems and real‑time features. Enjoys databases, security, and making everything just work.
+              <p className="text-sm text-muted-foreground mb-3">
+                Lina is a passionate debater and a dedicated tennis athlete. Whether in the debate room or on the court, she brings focus, energy, and commitment to everything she does.
               </p>
+              <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                <li>Vice president of Oxymorona Debate Club</li>
+                <li>2 years debate experience in PF</li>
+                <li>NHSDLC 2024 PF Offline High School best speaker award</li>
+                <li>NHSDLC 2024 PF Offline Middle School Round of 16</li>
+                <li>NHSDLC 2025 PF Online HIGH School QuarterFinals</li>
+              </ul>
             </article>
           </div>
         </section>
