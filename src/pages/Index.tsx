@@ -83,7 +83,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <article className="p-6 rounded-lg border border-border bg-card text-card-foreground shadow-sm hover:shadow-md hover-scale transition-shadow">
               <div className="flex items-center gap-4 mb-4">
-                <img src="/lovable-uploads/f5512394-e22b-40b2-9af4-2aa55972453d.png" alt="Julie Zhu profile photo" className="w-16 h-16 rounded-full border border-border object-cover" loading="lazy" />
+                <img src="/lovable-uploads/c91fef03-82a7-466d-a99b-55f44262776a.png" alt="Julie Zhu profile photo" className="w-16 h-16 rounded-full border border-border object-cover" loading="lazy" />
                 <div>
                   <h3 className="text-lg font-medium">Julie Zhu</h3>
                   <p className="text-muted-foreground text-sm">Website Developer</p>
