@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -100,71 +100,13 @@ export const JoinUs = () => {
     }
   };
 
-  const FormFields = ({ type, form, setForm }: { 
-    type: 'cohost' | 'management', 
-    form: ApplicationForm, 
-    setForm: React.Dispatch<React.SetStateAction<ApplicationForm>> 
-  }) => (
-    <div className="space-y-4">
-      <div>
-        <Label htmlFor={`${type}-name`}>Full Name *</Label>
-        <Input
-          id={`${type}-name`}
-          value={form.name}
-          onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Enter your full name"
-          className="mt-1"
-        />
-      </div>
+  const handleCohostFormChange = useCallback((field: string, value: string) => {
+    setCohostForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
-      <div>
-        <Label htmlFor={`${type}-email`}>Email Address *</Label>
-        <Input
-          id={`${type}-email`}
-          type="email"
-          value={form.email}
-          onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
-          placeholder="Enter your email address"
-          className="mt-1"
-        />
-      </div>
-
-      <div>
-        <Label htmlFor={`${type}-org`}>Organization/School *</Label>
-        <Input
-          id={`${type}-org`}
-          value={form.organizationSchool}
-          onChange={(e) => setForm(prev => ({ ...prev, organizationSchool: e.target.value }))}
-          placeholder="Enter your organization or school name"
-          className="mt-1"
-        />
-      </div>
-
-      {type === 'management' && (
-        <div>
-          <Label htmlFor={`${type}-position`}>Desired Position *</Label>
-          <Input
-            id={`${type}-position`}
-            value={form.desiredPosition || ''}
-            onChange={(e) => setForm(prev => ({ ...prev, desiredPosition: e.target.value }))}
-            placeholder="e.g., Content Manager, Technical Lead, Marketing Coordinator"
-            className="mt-1"
-          />
-        </div>
-      )}
-
-      <div>
-        <Label htmlFor={`${type}-message`}>Tell us about yourself *</Label>
-        <Textarea
-          id={`${type}-message`}
-          value={form.message}
-          onChange={(e) => setForm(prev => ({ ...prev, message: e.target.value }))}
-          placeholder="Share your experience, motivations, and what you'd bring to the role..."
-          className="mt-1 min-h-[120px]"
-        />
-      </div>
-    </div>
-  );
+  const handleManagementFormChange = useCallback((field: string, value: string) => {
+    setManagementForm(prev => ({ ...prev, [field]: value }));
+  }, []);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -210,11 +152,52 @@ export const JoinUs = () => {
                   </DialogDescription>
                 </DialogHeader>
                 
-                <FormFields 
-                  type="cohost" 
-                  form={cohostForm} 
-                  setForm={setCohostForm} 
-                />
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="cohost-name">Full Name *</Label>
+                    <Input
+                      id="cohost-name"
+                      value={cohostForm.name}
+                      onChange={(e) => handleCohostFormChange('name', e.target.value)}
+                      placeholder="Enter your full name"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cohost-email">Email Address *</Label>
+                    <Input
+                      id="cohost-email"
+                      type="email"
+                      value={cohostForm.email}
+                      onChange={(e) => handleCohostFormChange('email', e.target.value)}
+                      placeholder="Enter your email address"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cohost-org">Organization/School *</Label>
+                    <Input
+                      id="cohost-org"
+                      value={cohostForm.organizationSchool}
+                      onChange={(e) => handleCohostFormChange('organizationSchool', e.target.value)}
+                      placeholder="Enter your organization or school name"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cohost-message">Tell us about yourself *</Label>
+                    <Textarea
+                      id="cohost-message"
+                      value={cohostForm.message}
+                      onChange={(e) => handleCohostFormChange('message', e.target.value)}
+                      placeholder="Share your experience, motivations, and what you'd bring to the role..."
+                      className="mt-1 min-h-[120px]"
+                    />
+                  </div>
+                </div>
                 
                 <div className="flex gap-2 pt-4">
                   <Button 
@@ -270,11 +253,63 @@ export const JoinUs = () => {
                   </DialogDescription>
                 </DialogHeader>
                 
-                <FormFields 
-                  type="management" 
-                  form={managementForm} 
-                  setForm={setManagementForm} 
-                />
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="management-name">Full Name *</Label>
+                    <Input
+                      id="management-name"
+                      value={managementForm.name}
+                      onChange={(e) => handleManagementFormChange('name', e.target.value)}
+                      placeholder="Enter your full name"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="management-email">Email Address *</Label>
+                    <Input
+                      id="management-email"
+                      type="email"
+                      value={managementForm.email}
+                      onChange={(e) => handleManagementFormChange('email', e.target.value)}
+                      placeholder="Enter your email address"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="management-org">Organization/School *</Label>
+                    <Input
+                      id="management-org"
+                      value={managementForm.organizationSchool}
+                      onChange={(e) => handleManagementFormChange('organizationSchool', e.target.value)}
+                      placeholder="Enter your organization or school name"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="management-position">Desired Position *</Label>
+                    <Input
+                      id="management-position"
+                      value={managementForm.desiredPosition || ''}
+                      onChange={(e) => handleManagementFormChange('desiredPosition', e.target.value)}
+                      placeholder="e.g., Content Manager, Technical Lead, Marketing Coordinator"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="management-message">Tell us about yourself *</Label>
+                    <Textarea
+                      id="management-message"
+                      value={managementForm.message}
+                      onChange={(e) => handleManagementFormChange('message', e.target.value)}
+                      placeholder="Share your experience, motivations, and what you'd bring to the role..."
+                      className="mt-1 min-h-[120px]"
+                    />
+                  </div>
+                </div>
                 
                 <div className="flex gap-2 pt-4">
                   <Button 

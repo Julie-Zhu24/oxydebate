@@ -225,14 +225,14 @@ const Tournament = () => {
       return;
     }
 
-    // Check if user has already checked in for this session
+    // Check if user has already checked in for this active session
     const existingCheckIn = checkIns.find(
       checkIn => checkIn.session_id === activeSession.id && 
                  checkIn.participant_email === portalEmail
     );
 
     if (existingCheckIn) {
-      toast.error('You have already checked in for this session');
+      toast.success('You are already checked in for this session!');
       return;
     }
 
@@ -436,9 +436,16 @@ const Tournament = () => {
               <CardTitle>Check In</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleCheckIn} className="w-full">
-                Check In for Tournament
-              </Button>
+              {checkIns.find(checkIn => checkIn.session_id === activeSession.id && checkIn.participant_email === portalEmail) ? (
+                <div className="text-center">
+                  <p className="text-green-600 font-medium mb-2">✓ You are checked in for this session</p>
+                  <p className="text-sm text-muted-foreground">No need to check in again until the next session begins</p>
+                </div>
+              ) : (
+                <Button onClick={handleCheckIn} className="w-full">
+                  Check In for Tournament
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
