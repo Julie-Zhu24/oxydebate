@@ -459,14 +459,48 @@ const Tournament = () => {
             {announcements.length > 0 ? (
               <div className="space-y-4">
                 {announcements.map(announcement => (
-                  <div key={announcement.id} className="p-4 border rounded-lg">
-                    <h3 className="font-semibold">{announcement.title}</h3>
-                    <p className="text-muted-foreground mt-1">{announcement.content}</p>
-                    <small className="text-xs text-muted-foreground">
-                      {new Date(announcement.created_at).toLocaleDateString()}
-                    </small>
-                  </div>
-                ))}
+                   <div key={announcement.id} className="p-4 border rounded-lg">
+                     <h3 className="font-semibold">{announcement.title}</h3>
+                     <div 
+                       className="text-muted-foreground mt-1" 
+                       dangerouslySetInnerHTML={{ __html: announcement.content }}
+                     />
+                     
+                     {/* File Attachments */}
+                     {announcement.file_attachments && Array.isArray(announcement.file_attachments) && announcement.file_attachments.length > 0 && (
+                       <div className="mt-3 space-y-2">
+                         <p className="text-sm font-medium">Attachments:</p>
+                         <div className="space-y-1">
+                           {announcement.file_attachments.map((file: any, index: number) => (
+                             <div key={index}>
+                               {file.type?.startsWith('image/') ? (
+                                 <img
+                                   src={file.url}
+                                   alt={file.name}
+                                   className="max-w-full h-auto rounded border max-h-64 object-contain"
+                                 />
+                               ) : (
+                                 <a
+                                   href={file.url}
+                                   target="_blank"
+                                   rel="noopener noreferrer"
+                                   className="inline-flex items-center gap-2 text-blue-600 hover:underline text-sm"
+                                 >
+                                   <span>📄</span>
+                                   {file.name}
+                                 </a>
+                               )}
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                     
+                     <small className="text-xs text-muted-foreground block mt-2">
+                       {new Date(announcement.created_at).toLocaleDateString()}
+                     </small>
+                   </div>
+                 ))}
               </div>
             ) : (
               <p className="text-muted-foreground">No announcements yet.</p>
