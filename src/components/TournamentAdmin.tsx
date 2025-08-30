@@ -55,8 +55,8 @@ export const TournamentAdmin: React.FC = () => {
   // Form states
   const [newRound, setNewRound] = useState({ round_number: '', round_name: '' });
   const [newMatch, setNewMatch] = useState({ round_id: '', prop_team: '', opp_team: '' });
-  const [scoreUpdate, setScoreUpdate] = useState({ match_id: '', speaker_name: '', team_name: '', score: '' });
-  const [matchResult, setMatchResult] = useState({ match_id: '', winner: '' });
+  const [scoreUpdate, setScoreUpdate] = useState({ round_id: '', match_id: '', speaker_name: '', team_name: '', score: '' });
+  const [matchResult, setMatchResult] = useState({ round_id: '', match_id: '', winner: '' });
 
   useEffect(() => {
     fetchData();
@@ -266,7 +266,7 @@ export const TournamentAdmin: React.FC = () => {
         description: "Speaker score updated successfully"
       });
 
-      setScoreUpdate({ match_id: '', speaker_name: '', team_name: '', score: '' });
+      setScoreUpdate({ round_id: '', match_id: '', speaker_name: '', team_name: '', score: '' });
       fetchData();
     } catch (error) {
       console.error('Error updating speaker score:', error);
@@ -301,7 +301,7 @@ export const TournamentAdmin: React.FC = () => {
         description: "Match result updated successfully"
       });
 
-      setMatchResult({ match_id: '', winner: '' });
+      setMatchResult({ round_id: '', match_id: '', winner: '' });
       fetchData();
     } catch (error) {
       console.error('Error updating match result:', error);
@@ -530,43 +530,92 @@ export const TournamentAdmin: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <div>
-                  <Label htmlFor="score-match">Match</Label>
-                  <Select value={scoreUpdate.match_id} onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, match_id: value }))}>
+                  <Label htmlFor="score-round">Round</Label>
+                  <Select value={scoreUpdate.round_id} onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, round_id: value, match_id: '', team_name: '', speaker_name: '' }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select match" />
+                      <SelectValue placeholder="Select round" />
                     </SelectTrigger>
                     <SelectContent>
-                      {matches.map((match) => (
-                        <SelectItem key={match.id} value={match.id}>
-                          {match.prop_team_name} vs {match.opp_team_name}
+                      {rounds.map((round) => (
+                        <SelectItem key={round.id} value={round.id}>
+                          {round.round_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="speaker-name">Speaker Name</Label>
-                  <Input
-                    id="speaker-name"
-                    placeholder="Speaker name"
-                    value={scoreUpdate.speaker_name}
-                    onChange={(e) => setScoreUpdate(prev => ({ ...prev, speaker_name: e.target.value }))}
-                  />
+                  <Label htmlFor="score-match">Match</Label>
+                  <Select 
+                    value={scoreUpdate.match_id} 
+                    onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, match_id: value, team_name: '', speaker_name: '' }))}
+                    disabled={!scoreUpdate.round_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select match" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {matches
+                        .filter(match => match.round_id === scoreUpdate.round_id)
+                        .map((match) => (
+                          <SelectItem key={match.id} value={match.id}>
+                            {match.prop_team_name} vs {match.opp_team_name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="speaker-team">Team</Label>
-                  <Select value={scoreUpdate.team_name} onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, team_name: value }))}>
+                  <Select 
+                    value={scoreUpdate.team_name} 
+                    onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, team_name: value, speaker_name: '' }))}
+                    disabled={!scoreUpdate.match_id}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teams.map((team) => (
-                        <SelectItem key={team.team_name} value={team.team_name}>
-                          {team.team_name}
-                        </SelectItem>
-                      ))}
+                      {scoreUpdate.match_id && (() => {
+                        const selectedMatch = matches.find(m => m.id === scoreUpdate.match_id);
+                        if (!selectedMatch) return [];
+                        return [
+                          <SelectItem key="prop" value={selectedMatch.prop_team_name}>
+                            {selectedMatch.prop_team_name}
+                          </SelectItem>,
+                          <SelectItem key="opp" value={selectedMatch.opp_team_name}>
+                            {selectedMatch.opp_team_name}
+                          </SelectItem>
+                        ];
+                      })()}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="speaker-name">Speaker</Label>
+                  <Select 
+                    value={scoreUpdate.speaker_name} 
+                    onValueChange={(value) => setScoreUpdate(prev => ({ ...prev, speaker_name: value }))}
+                    disabled={!scoreUpdate.team_name}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select speaker" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {scoreUpdate.team_name && (() => {
+                        const selectedTeam = teams.find(t => t.team_name === scoreUpdate.team_name);
+                        if (!selectedTeam) return [];
+                        return [
+                          <SelectItem key="speaker1" value={selectedTeam.name}>
+                            {selectedTeam.name}
+                          </SelectItem>,
+                          <SelectItem key="speaker2" value={selectedTeam.partner_name}>
+                            {selectedTeam.partner_name}
+                          </SelectItem>
+                        ];
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
@@ -599,19 +648,40 @@ export const TournamentAdmin: React.FC = () => {
               <CardTitle>Update Match Results</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="result-round">Round</Label>
+                  <Select value={matchResult.round_id} onValueChange={(value) => setMatchResult(prev => ({ ...prev, round_id: value, match_id: '' }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select round" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rounds.map((round) => (
+                        <SelectItem key={round.id} value={round.id}>
+                          {round.round_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <Label htmlFor="result-match">Match</Label>
-                  <Select value={matchResult.match_id} onValueChange={(value) => setMatchResult(prev => ({ ...prev, match_id: value }))}>
+                  <Select 
+                    value={matchResult.match_id} 
+                    onValueChange={(value) => setMatchResult(prev => ({ ...prev, match_id: value }))}
+                    disabled={!matchResult.round_id}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select match" />
                     </SelectTrigger>
                     <SelectContent>
-                      {matches.filter(match => !match.winner_team).map((match) => (
-                        <SelectItem key={match.id} value={match.id}>
-                          {match.prop_team_name} vs {match.opp_team_name}
-                        </SelectItem>
-                      ))}
+                      {matches
+                        .filter(match => match.round_id === matchResult.round_id && !match.winner_team)
+                        .map((match) => (
+                          <SelectItem key={match.id} value={match.id}>
+                            {match.prop_team_name} vs {match.opp_team_name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
