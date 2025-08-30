@@ -47,6 +47,48 @@ export type Database = {
         }
         Relationships: []
       }
+      applications: {
+        Row: {
+          application_type: string
+          created_at: string
+          desired_position: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          organization_school: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          application_type: string
+          created_at?: string
+          desired_position?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          organization_school: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          application_type?: string
+          created_at?: string
+          desired_position?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          organization_school?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       check_in_sessions: {
         Row: {
           created_at: string

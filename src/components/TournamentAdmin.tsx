@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Settings, Trophy, Users, Clock, Megaphone } from 'lucide-react';
-import { TournamentAnnouncements } from '@/components/TournamentAnnouncements';
+import { TournamentLeaderboard } from './TournamentLeaderboard';
+import { TournamentAnnouncements } from './TournamentAnnouncements';
+import { ApplicationManager } from './ApplicationManager';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -340,12 +342,13 @@ export const TournamentAdmin: React.FC = () => {
       </div>
 
       <Tabs defaultValue="rounds" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="rounds">Rounds</TabsTrigger>
           <TabsTrigger value="matches">Matches</TabsTrigger>
           <TabsTrigger value="scores">Scores</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
           <TabsTrigger value="announcements">Announcements</TabsTrigger>
+          <TabsTrigger value="applications">Applications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="rounds">
@@ -636,6 +639,10 @@ export const TournamentAdmin: React.FC = () => {
 
         <TabsContent value="announcements">
           <TournamentAnnouncements />
+        </TabsContent>
+
+        <TabsContent value="applications">
+          <ApplicationManager />
         </TabsContent>
       </Tabs>
     </div>
