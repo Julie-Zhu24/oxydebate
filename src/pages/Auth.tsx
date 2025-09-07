@@ -9,11 +9,12 @@ import { Loader2 } from 'lucide-react';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,7 +22,23 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await resetPassword(email);
+        if (error) {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: "Password reset email sent! Check your inbox for instructions.",
+          });
+          setIsForgotPassword(false);
+          setIsLogin(true);
+        }
+      } else if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
           toast({
@@ -63,16 +80,21 @@ const Auth = () => {
       <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border/20 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {isLogin ? 'Welcome Back' : 'Join Oxy Debate'}
+            {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Join Oxy Debate'}
           </CardTitle>
           <CardDescription>
-            {isLogin ? 'Sign in to your account' : 'Create your account to start debating'}
+            {isForgotPassword 
+              ? 'Enter your email to receive password reset instructions'
+              : isLogin 
+                ? 'Sign in to your account' 
+                : 'Create your account to start debating'
+            }
           </CardDescription>
         </CardHeader>
         
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <label htmlFor="displayName" className="text-sm font-medium">
                   Display Name
@@ -103,20 +125,22 @@ const Auth = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-background/50 border-border/30"
-              />
-            </div>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-background/50 border-border/30"
+                />
+              </div>
+            )}
           </CardContent>
           
           <CardFooter className="flex flex-col space-y-4">
@@ -126,17 +150,51 @@ const Auth = () => {
               disabled={loading}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLogin ? 'Sign In' : 'Sign Up'}
+              {isForgotPassword 
+                ? 'Send Reset Email' 
+                : isLogin 
+                  ? 'Sign In' 
+                  : 'Sign Up'
+              }
             </Button>
             
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsLogin(!isLogin)}
-              className="w-full"
-            >
-              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-            </Button>
+            {!isForgotPassword && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="w-full"
+                >
+                  {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                </Button>
+                
+                {isLogin && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsForgotPassword(true)}
+                    className="w-full text-sm"
+                  >
+                    Forgot your password?
+                  </Button>
+                )}
+              </>
+            )}
+            
+            {isForgotPassword && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsLogin(true);
+                }}
+                className="w-full"
+              >
+                Back to Sign In
+              </Button>
+            )}
           </CardFooter>
         </form>
       </Card>
