@@ -24,7 +24,7 @@ interface Post {
   user_id: string;
   profiles: {
     display_name: string | null;
-    username: string | null;
+    username?: string | null; // Made optional for security - not fetched for public display
     avatar_url?: string | null;
   } | null;
 }
@@ -87,10 +87,10 @@ export const Posts = () => {
       // Get unique user IDs
       const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
       
-      // Fetch profiles for those user IDs
+      // Fetch profiles for those user IDs - only select public fields for security
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, display_name, username, avatar_url')
+        .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
       if (profilesError) throw profilesError;
@@ -463,11 +463,11 @@ export const Posts = () => {
 
       if (commentsError) throw commentsError;
 
-      // Get user profiles for comment authors
+      // Get user profiles for comment authors - only select public fields for security
       const userIds = [...new Set(commentsData?.map(comment => comment.user_id) || [])];
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('user_id, display_name, username, avatar_url')
+        .select('user_id, display_name, avatar_url')
         .in('user_id', userIds);
 
       if (profilesError) throw profilesError;
@@ -814,11 +814,11 @@ export const Posts = () => {
                   <Avatar>
                     <AvatarImage src={post.profiles?.avatar_url} />
                     <AvatarFallback>
-                      {post.profiles?.display_name?.[0] || post.profiles?.username?.[0] || 'U'}
+                      {post.profiles?.display_name?.[0] || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{post.profiles?.display_name || post.profiles?.username}</p>
+                    <p className="font-medium">{post.profiles?.display_name || 'Anonymous User'}</p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(post.created_at).toLocaleDateString()}
                     </p>
@@ -952,13 +952,13 @@ export const Posts = () => {
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={comment.profile?.avatar_url} />
                               <AvatarFallback className="text-xs">
-                                {comment.profile?.display_name?.[0] || comment.profile?.username?.[0] || 'U'}
+                                {comment.profile?.display_name?.[0] || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-sm font-medium">
-                                  {comment.profile?.display_name || comment.profile?.username}
+                                  {comment.profile?.display_name || 'Anonymous User'}
                                 </span>
                                 <span className="text-xs text-muted-foreground">
                                   {new Date(comment.created_at).toLocaleDateString()}
