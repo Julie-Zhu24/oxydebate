@@ -63,7 +63,7 @@ const Auth = () => {
       <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-border/20 shadow-2xl">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {isLogin ? 'Welcome Back' : 'Join DebateMaster'}
+            {isLogin ? 'Welcome Back' : 'Join Oxy Debate'}
           </CardTitle>
           <CardDescription>
             {isLogin ? 'Sign in to your account' : 'Create your account to start debating'}
