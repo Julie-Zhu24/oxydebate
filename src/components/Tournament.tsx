@@ -404,6 +404,11 @@ const Tournament = () => {
           </CardContent>
         </Card>
 
+        {/* Tournament Leaderboard */}
+        <TournamentLeaderboard />
+
+        <Separator className="my-8" />
+
         {/* Admin Tournament Management */}
         <TournamentAdmin />
       </div>
