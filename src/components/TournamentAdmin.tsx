@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Settings, Trophy, Users, Clock, Megaphone } from 'lucide-react';
+import { Plus, Settings, Trophy, Users, Clock, Megaphone, Trash2, Edit } from 'lucide-react';
 import { TournamentLeaderboard } from './TournamentLeaderboard';
 import { TournamentAnnouncements } from './TournamentAnnouncements';
 
@@ -296,9 +296,12 @@ export const TournamentAdmin: React.FC = () => {
 
       if (error) throw error;
 
+      const selectedMatch = matches.find(m => m.id === matchResult.match_id);
+      const isRevision = selectedMatch?.winner_team !== null;
+
       toast({
         title: "Success",
-        description: "Match result updated successfully"
+        description: isRevision ? "Match result revised successfully" : "Match result updated successfully"
       });
 
       setMatchResult({ round_id: '', match_id: '', winner: '' });
@@ -308,6 +311,31 @@ export const TournamentAdmin: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to update match result",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteMatch = async (matchId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_matches')
+        .delete()
+        .eq('id', matchId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Match deleted successfully"
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete match",
         variant: "destructive"
       });
     }
@@ -493,6 +521,7 @@ export const TournamentAdmin: React.FC = () => {
                         <TableHead>Proposition</TableHead>
                         <TableHead>Opposition</TableHead>
                         <TableHead>Result</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -509,6 +538,16 @@ export const TournamentAdmin: React.FC = () => {
                             ) : (
                               <Badge variant="secondary">Pending</Badge>
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteMatch(match.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -644,13 +683,19 @@ export const TournamentAdmin: React.FC = () => {
         <TabsContent value="results">
           <Card>
             <CardHeader>
-              <CardTitle>Update Match Results</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5" />
+                Update & Revise Match Results
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                You can set results for new matches or revise previously announced results.
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="result-round">Round</Label>
-                  <Select value={matchResult.round_id} onValueChange={(value) => setMatchResult(prev => ({ ...prev, round_id: value, match_id: '' }))}>
+                  <Select value={matchResult.round_id} onValueChange={(value) => setMatchResult(prev => ({ ...prev, round_id: value, match_id: '', winner: '' }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select round" />
                     </SelectTrigger>
@@ -667,7 +712,14 @@ export const TournamentAdmin: React.FC = () => {
                   <Label htmlFor="result-match">Match</Label>
                   <Select 
                     value={matchResult.match_id} 
-                    onValueChange={(value) => setMatchResult(prev => ({ ...prev, match_id: value }))}
+                    onValueChange={(value) => {
+                      const selectedMatch = matches.find(m => m.id === value);
+                      setMatchResult(prev => ({ 
+                        ...prev, 
+                        match_id: value,
+                        winner: selectedMatch?.winner_team || ''
+                      }));
+                    }}
                     disabled={!matchResult.round_id}
                   >
                     <SelectTrigger>
@@ -675,10 +727,15 @@ export const TournamentAdmin: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {matches
-                        .filter(match => match.round_id === matchResult.round_id && !match.winner_team)
+                        .filter(match => match.round_id === matchResult.round_id)
                         .map((match) => (
                           <SelectItem key={match.id} value={match.id}>
                             {match.prop_team_name} vs {match.opp_team_name}
+                            {match.winner_team && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                (Result set)
+                              </span>
+                            )}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -691,14 +748,27 @@ export const TournamentAdmin: React.FC = () => {
                       <SelectValue placeholder="Select winner" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="prop">Proposition Team</SelectItem>
-                      <SelectItem value="opp">Opposition Team</SelectItem>
+                      {matchResult.match_id && (() => {
+                        const selectedMatch = matches.find(m => m.id === matchResult.match_id);
+                        if (!selectedMatch) return [];
+                        return [
+                          <SelectItem key="prop" value="prop">
+                            {selectedMatch.prop_team_name} (Proposition)
+                          </SelectItem>,
+                          <SelectItem key="opp" value="opp">
+                            {selectedMatch.opp_team_name} (Opposition)
+                          </SelectItem>
+                        ];
+                      })()}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={updateMatchResult} className="w-full">
-                    Update Result
+                    {(() => {
+                      const selectedMatch = matches.find(m => m.id === matchResult.match_id);
+                      return selectedMatch?.winner_team ? 'Revise Result' : 'Set Result';
+                    })()}
                   </Button>
                 </div>
               </div>
