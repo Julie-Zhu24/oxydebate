@@ -13,6 +13,7 @@ import { TournamentLeaderboard } from '@/components/TournamentLeaderboard';
 import { TournamentAdmin } from '@/components/TournamentAdmin';
 import { TournamentAnnouncements } from '@/components/TournamentAnnouncements';
 import { RegistrationModal } from '@/components/RegistrationModal';
+import { SafeHTML } from '@/components/SafeHTML';
 import { Users, Gavel, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -466,10 +467,10 @@ const Tournament = () => {
                 {announcements.map(announcement => (
                    <div key={announcement.id} className="p-4 border rounded-lg">
                      <h3 className="font-semibold">{announcement.title}</h3>
-                     <div 
-                       className="text-muted-foreground mt-1" 
-                       dangerouslySetInnerHTML={{ __html: announcement.content }}
-                     />
+                      <SafeHTML 
+                        content={announcement.content} 
+                        className="text-muted-foreground mt-1"
+                      />
                      
                      {/* File Attachments */}
                      {announcement.file_attachments && Array.isArray(announcement.file_attachments) && announcement.file_attachments.length > 0 && (

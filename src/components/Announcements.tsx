@@ -10,6 +10,7 @@ import { Bell } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { SafeHTML } from './SafeHTML';
 
 interface Announcement {
   id: string;
@@ -204,7 +205,10 @@ export const Announcements = () => {
                 </div>
               </div>
               <CollapsibleContent className="mt-4">
-                <div className="space-y-3 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: a.content }} />
+                <SafeHTML 
+                  content={a.content} 
+                  className="space-y-3 text-sm leading-relaxed"
+                />
               </CollapsibleContent>
             </Collapsible>
           ))}
