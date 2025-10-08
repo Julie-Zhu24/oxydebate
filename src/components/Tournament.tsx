@@ -139,33 +139,16 @@ const Tournament = () => {
 
   const deleteDebater = async (id) => {
     try {
-      // First, get the team name to delete related records
-      const { data: debater, error: fetchError } = await supabase
-        .from('tournament_debaters')
-        .select('team_name')
-        .eq('id', id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      // Delete all speaker scores for this team
-      const { error: scoresError } = await supabase
-        .from('tournament_speaker_scores')
-        .delete()
-        .eq('team_name', debater.team_name);
-      
-      if (scoresError) throw scoresError;
-      
-      // Delete the team/debater record
-      const { error: deleteError } = await supabase
+      // Database trigger handles cascade deletion of speaker scores
+      const { error } = await supabase
         .from('tournament_debaters')
         .delete()
         .eq('id', id);
       
-      if (deleteError) throw deleteError;
+      if (error) throw error;
       
       toast.success('Team and all related records deleted successfully!');
-      fetchDebaters(); // Refresh the list
+      fetchDebaters();
     } catch (error) {
       toast.error('Failed to delete team: ' + error.message);
     }
