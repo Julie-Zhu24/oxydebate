@@ -122,6 +122,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
 
       if (data.user) {
+        const confirmed = Boolean((data.user as any).email_confirmed_at || (data.user as any).confirmed_at);
+        if (!confirmed) {
+          try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
+          return { error: { message: 'Please confirm your email before signing in.' } };
+        }
         window.location.href = '/';
       }
 
