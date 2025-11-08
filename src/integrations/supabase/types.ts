@@ -860,14 +860,8 @@ export type Database = {
         Args: { participant_user_ids: string[] }
         Returns: undefined
       }
-      increment_user_losses: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
-      increment_user_wins: {
-        Args: { user_id: string }
-        Returns: undefined
-      }
+      increment_user_losses: { Args: { user_id: string }; Returns: undefined }
+      increment_user_wins: { Args: { user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
