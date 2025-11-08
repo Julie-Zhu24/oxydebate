@@ -308,7 +308,7 @@ const Tournament = () => {
     ...debaters.map(d => d.email),
     ...debaters.map(d => d.partner_email),
     ...judges.filter(j => j.status === 'approved').map(j => j.email)
-  ].filter(Boolean);
+  ].filter(Boolean).map(email => email.toLowerCase());
 
   const checkedInEmails = currentSessionCheckIns.map(c => c.participant_email);
   const notCheckedInEmails = allRegisteredEmails.filter(email => !checkedInEmails.includes(email));
