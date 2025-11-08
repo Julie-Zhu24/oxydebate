@@ -154,6 +154,22 @@ const Tournament = () => {
     }
   };
 
+  const approveJudge = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('tournament_judges')
+        .update({ status: 'approved' })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success('Judge approved successfully!');
+      fetchJudges();
+    } catch (error) {
+      toast.error('Failed to approve judge: ' + error.message);
+    }
+  };
+
   const deleteJudge = async (id) => {
     try {
       const { error } = await supabase.from('tournament_judges').delete().eq('id', id);
@@ -291,7 +307,7 @@ const Tournament = () => {
   const allRegisteredEmails = [
     ...debaters.map(d => d.email),
     ...debaters.map(d => d.partner_email),
-    ...judges.map(j => j.email)
+    ...judges.filter(j => j.status === 'approved').map(j => j.email)
   ].filter(Boolean);
 
   const checkedInEmails = currentSessionCheckIns.map(c => c.participant_email);
@@ -393,13 +409,24 @@ const Tournament = () => {
                         Status: {judge.status} | Experience: {judge.judge_experience}
                       </small>
                     </div>
-                    <Button 
-                      onClick={() => deleteJudge(judge.id)} 
-                      variant="destructive" 
-                      size="sm"
-                    >
-                      Delete
-                    </Button>
+                    <div className="flex gap-2">
+                      {judge.status === 'pending' && (
+                        <Button 
+                          onClick={() => approveJudge(judge.id)} 
+                          variant="default" 
+                          size="sm"
+                        >
+                          Approve
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => deleteJudge(judge.id)} 
+                        variant="destructive" 
+                        size="sm"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
