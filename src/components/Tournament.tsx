@@ -235,10 +235,12 @@ const Tournament = () => {
   };
 
   const handleCheckIn = async () => {
-    if (!portalEmail) {
+    if (!portalEmail || !portalEmail.trim()) {
       toast.error('Please enter your email to check in');
       return;
     }
+
+    const normalizedPortalEmail = portalEmail.trim().toLowerCase();
 
     const activeSession = checkInSessions.find(session => session.is_active);
     if (!activeSession) {
@@ -246,10 +248,10 @@ const Tournament = () => {
       return;
     }
 
-    // Check if user has already checked in for this active session
+    // Check if user has already checked in for this active session (case-insensitive)
     const existingCheckIn = checkIns.find(
       checkIn => checkIn.session_id === activeSession.id && 
-                 checkIn.participant_email === portalEmail
+                 ((checkIn.participant_email || '').trim().toLowerCase() === normalizedPortalEmail)
     );
 
     if (existingCheckIn) {
@@ -258,11 +260,12 @@ const Tournament = () => {
     }
 
     try {
+      const isJudge = judges.some(j => j.status === 'approved' && ((j.email || '').trim().toLowerCase() === normalizedPortalEmail));
       const { error } = await supabase.from('check_ins').insert([{
         session_id: activeSession.id,
-        participant_email: portalEmail,
-        participant_name: portalEmail,
-        participant_type: 'debater'
+        participant_email: normalizedPortalEmail,
+        participant_name: normalizedPortalEmail,
+        participant_type: isJudge ? 'judge' : 'debater'
       }]);
       
       if (error) throw error;
@@ -276,15 +279,17 @@ const Tournament = () => {
 
   const handlePortalAccess = async (e) => {
     e.preventDefault();
-    if (!portalEmail) {
+    if (!portalEmail || !portalEmail.trim()) {
       toast.error('Please enter your email');
       return;
     }
 
+    const normalizedPortalEmail = portalEmail.trim().toLowerCase();
+
     setIsVerifying(true);
     try {
-      // Check if email exists in debaters or judges
-      const isRegistered = allRegisteredEmails.includes(portalEmail.toLowerCase());
+      // Check if email exists in debaters or approved judges (case-insensitive, trimmed)
+      const isRegistered = allRegisteredEmails.includes(normalizedPortalEmail);
       
       if (isRegistered) {
         setIsInPortal(true);
@@ -305,12 +310,12 @@ const Tournament = () => {
     : [];
 
   const allRegisteredEmails = [
-    ...debaters.map(d => d.email),
-    ...debaters.map(d => d.partner_email),
-    ...judges.filter(j => j.status === 'approved').map(j => j.email)
+    ...debaters.map(d => (d.email || '').trim()),
+    ...debaters.map(d => (d.partner_email || '').trim()),
+    ...judges.filter(j => j.status === 'approved').map(j => (j.email || '').trim())
   ].filter(Boolean).map(email => email.toLowerCase());
 
-  const checkedInEmails = currentSessionCheckIns.map(c => c.participant_email);
+  const checkedInEmails = currentSessionCheckIns.map(c => (c.participant_email || '').trim().toLowerCase());
   const notCheckedInEmails = allRegisteredEmails.filter(email => !checkedInEmails.includes(email));
 
   // Admin view - full functionality
@@ -473,7 +478,7 @@ const Tournament = () => {
               <CardTitle>Check In</CardTitle>
             </CardHeader>
             <CardContent>
-              {checkIns.find(checkIn => checkIn.session_id === activeSession.id && checkIn.participant_email === portalEmail) ? (
+              {checkIns.find(checkIn => checkIn.session_id === activeSession.id && (checkIn.participant_email || '').trim().toLowerCase() === portalEmail.trim().toLowerCase()) ? (
                 <div className="text-center">
                   <p className="text-green-600 font-medium mb-2">✓ You are checked in for this session</p>
                   <p className="text-sm text-muted-foreground">No need to check in again until the next session begins</p>
