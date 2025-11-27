@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 
 const Tournament = () => {
   const { user } = useAuth();
-  const { isAdmin } = useRoles();
+  const { isAdmin, isTournamentAdmin } = useRoles();
 
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentLocation, setTournamentLocation] = useState('');
@@ -318,8 +318,8 @@ const Tournament = () => {
   const checkedInEmails = currentSessionCheckIns.map(c => (c.participant_email || '').trim().toLowerCase());
   const notCheckedInEmails = allRegisteredEmails.filter(email => !checkedInEmails.includes(email));
 
-  // Admin view - full functionality
-  if (isAdmin) {
+  // Admin view - full functionality (both admin and tournament_admin)
+  if (isAdmin || isTournamentAdmin) {
     return (
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Tournament Administration</h1>
