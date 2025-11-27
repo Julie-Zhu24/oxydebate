@@ -33,6 +33,7 @@ export const useRoles = () => {
   }, [user]);
 
   const isAdmin = roles.includes('admin');
+  const isTournamentAdmin = roles.includes('tournament_admin');
 
-  return { roles, isAdmin, loading };
+  return { roles, isAdmin, isTournamentAdmin, loading };
 };
