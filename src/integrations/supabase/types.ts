@@ -864,7 +864,7 @@ export type Database = {
       increment_user_wins: { Args: { user_id: string }; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "tournament_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -992,7 +992,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "tournament_admin"],
     },
   },
 } as const
