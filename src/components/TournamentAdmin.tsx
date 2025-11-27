@@ -34,6 +34,8 @@ interface Team {
   team_name: string;
   name: string;
   partner_name: string;
+  email: string;
+  partner_email: string;
 }
 
 interface SpeakerScore {
@@ -88,7 +90,7 @@ export const TournamentAdmin: React.FC = () => {
       // Fetch teams
       const { data: teamsData, error: teamsError } = await supabase
         .from('tournament_debaters')
-        .select('team_name, name, partner_name')
+        .select('team_name, name, partner_name, email, partner_email')
         .order('team_name');
       
       if (teamsError) throw teamsError;
@@ -647,10 +649,16 @@ export const TournamentAdmin: React.FC = () => {
                         if (!selectedTeam) return [];
                         return [
                           <SelectItem key="speaker1" value={selectedTeam.name}>
-                            {selectedTeam.name}
+                            <div className="flex flex-col">
+                              <span>{selectedTeam.name}</span>
+                              <span className="text-xs text-muted-foreground">{selectedTeam.email}</span>
+                            </div>
                           </SelectItem>,
                           <SelectItem key="speaker2" value={selectedTeam.partner_name}>
-                            {selectedTeam.partner_name}
+                            <div className="flex flex-col">
+                              <span>{selectedTeam.partner_name}</span>
+                              <span className="text-xs text-muted-foreground">{selectedTeam.partner_email}</span>
+                            </div>
                           </SelectItem>
                         ];
                       })()}
