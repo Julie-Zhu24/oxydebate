@@ -386,6 +386,8 @@ const Tournament = () => {
                       <strong>{debater.team_name}</strong> - {debater.name} & {debater.partner_name}
                       <br />
                       <small className="text-muted-foreground">{debater.school}</small>
+                      <br />
+                      <small className="text-muted-foreground">{debater.email} | {debater.partner_email}</small>
                     </div>
                     <Button 
                       onClick={() => deleteDebater(debater.id)} 
