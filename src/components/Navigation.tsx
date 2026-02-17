@@ -90,11 +90,12 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
               onMouseEnter={() => handleOpen('practice')}
               onMouseLeave={handleCloseWithDelay}
             >
-              <button className={`font-playfair text-sm md:text-base transition-colors ${['ai-practice','global-practice','rankings'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['practice-home','ai-practice','global-practice','rankings'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 Practice
               </button>
               {openMenu === 'practice' && (
                 <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('practice-home')} className="block w-full text-left px-4 py-2 hover:text-primary font-medium">Overview</button>
                   <button onClick={() => onSectionChange('ai-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">AI Practice</button>
                   <button onClick={() => onSectionChange('global-practice')} className="block w-full text-left px-4 py-2 hover:text-primary">Global Practice</button>
                   <button onClick={() => onSectionChange('rankings')} className="block w-full text-left px-4 py-2 hover:text-primary">Rankings</button>
@@ -103,7 +104,7 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
             </div>
 
             {/* Tournament */}
-            <button onClick={() => onSectionChange('tournament')} className={`font-playfair text-sm md:text-base transition-colors ${activeSection === 'tournament' ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+            <button onClick={() => onSectionChange('tournament-home')} className={`font-playfair text-sm md:text-base transition-colors ${['tournament-home','tournament'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
               Tournament
             </button>
 
@@ -113,11 +114,12 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
               onMouseEnter={() => handleOpen('resource')}
               onMouseLeave={handleCloseWithDelay}
             >
-              <button className={`font-playfair text-sm md:text-base transition-colors ${['content','global-news','debate-guide'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['resource-home','content','global-news','debate-guide'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 Resource
               </button>
               {openMenu === 'resource' && (
                 <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('resource-home')} className="block w-full text-left px-4 py-2 hover:text-primary font-medium">Overview</button>
                   <button onClick={() => onSectionChange('content')} className="block w-full text-left px-4 py-2 hover:text-primary">Posts & Podcasts</button>
                   <button onClick={() => onSectionChange('global-news')} className="block w-full text-left px-4 py-2 hover:text-primary">Global News</button>
                   <button onClick={() => onSectionChange('debate-guide')} className="block w-full text-left px-4 py-2 hover:text-primary">Debate Guide</button>
@@ -131,11 +133,12 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
               onMouseEnter={() => handleOpen('mydebate')}
               onMouseLeave={handleCloseWithDelay}
             >
-              <button className={`font-playfair text-sm md:text-base transition-colors ${['my-progress','join-us','feedback'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
+              <button className={`font-playfair text-sm md:text-base transition-colors ${['mydebate-home','my-progress','join-us','feedback'].includes(activeSection) ? 'text-primary' : 'text-foreground hover:text-primary'}`}>
                 My Debate
               </button>
               {openMenu === 'mydebate' && (
                 <div className="absolute left-0 mt-2 bg-card border shadow-lg rounded-md py-2 w-56 z-50">
+                  <button onClick={() => onSectionChange('mydebate-home')} className="block w-full text-left px-4 py-2 hover:text-primary font-medium">Overview</button>
                   <button onClick={() => onSectionChange('my-progress')} className="block w-full text-left px-4 py-2 hover:text-primary">My Progress</button>
                   <button onClick={() => onSectionChange('join-us')} className="block w-full text-left px-4 py-2 hover:text-primary">Join Us</button>
                   <button onClick={() => onSectionChange('feedback')} className="block w-full text-left px-4 py-2 hover:text-primary">Feedback</button>
@@ -198,7 +201,7 @@ export const Navigation = ({ activeSection, onSectionChange, isAuthenticated, on
               </div>
 
               {/* Tournament */}
-              <button onClick={() => { onSectionChange('tournament'); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-3">Tournament</button>
+              <button onClick={() => { onSectionChange('tournament-home'); setIsMobileMenuOpen(false); }} className="w-full text-left px-4 py-3">Tournament</button>
 
               {/* Resource */}
               <div className="px-4">
