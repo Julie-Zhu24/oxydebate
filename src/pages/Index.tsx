@@ -33,7 +33,7 @@ const Index = () => {
   }, []);
 
   const handleGetStarted = () => {
-    navigate(user ? '/app' : '/auth');
+    navigate(user ? '/app?section=practice-home' : '/auth');
   };
 
 
@@ -86,7 +86,7 @@ const Index = () => {
                 <img src="/lovable-uploads/c91fef03-82a7-466d-a99b-55f44262776a.png" alt="Julie Zhu profile photo" className="w-16 h-16 rounded-full border border-border object-cover" loading="lazy" />
                 <div>
                   <h3 className="text-lg font-medium">Julie Zhu</h3>
-                  <p className="text-muted-foreground text-sm">Website Developer</p>
+                  <p className="text-muted-foreground text-sm">President</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-3">

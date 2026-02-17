@@ -6,7 +6,6 @@ import { AIPractice } from './AIPractice';
 import { RealGlobalPractice } from './RealGlobalPractice';
 import { RealRankings } from './RealRankings';
 import { Posts } from './Posts';
-import { DynamicBackground } from './DynamicBackground';
 import { Button } from '@/components/ui/button';
 import { ComingSoon } from '@/components/ComingSoon';
 import { MyProgress } from '@/components/MyProgress';
@@ -14,21 +13,20 @@ import { Feedback } from '@/components/Feedback';
 import { DebateGuide } from '@/components/DebateGuide';
 import { JoinUs } from '@/components/JoinUs';
 import Tournament from '@/components/Tournament';
+import { PracticeHome, TournamentHome, ResourceHome, MyDebateHome } from './SectionHome';
 
-export type Section = 'ai-practice' | 'global-practice' | 'rankings' | 'content' | 'tournament' | 'global-news' | 'debate-guide' | 'my-progress' | 'join-us' | 'feedback';
+export type Section = 'practice-home' | 'tournament-home' | 'resource-home' | 'mydebate-home' | 'ai-practice' | 'global-practice' | 'rankings' | 'content' | 'tournament' | 'global-news' | 'debate-guide' | 'my-progress' | 'join-us' | 'feedback';
 
 export const Layout = () => {
-  const [activeSection, setActiveSection] = useState<Section>('ai-practice');
+  const [activeSection, setActiveSection] = useState<Section>('practice-home');
   const { user, loading, signOut } = useAuth();
 
   useEffect(() => {
-    // Redirect to landing page if not authenticated
     if (!loading && !user) {
       window.location.href = '/';
     }
   }, [user, loading]);
 
-  // Initialize section from query param if provided
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sectionParam = params.get('section') as Section | null;
@@ -39,6 +37,7 @@ export const Layout = () => {
 
   const handleSectionChange = (section: Section) => {
     setActiveSection(section);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) {
@@ -50,11 +49,19 @@ export const Layout = () => {
   }
 
   if (!user) {
-    return null; // Will redirect to auth page
+    return null;
   }
 
   const renderSection = () => {
     switch (activeSection) {
+      case 'practice-home':
+        return <PracticeHome onNavigate={handleSectionChange} />;
+      case 'tournament-home':
+        return <TournamentHome onNavigate={handleSectionChange} />;
+      case 'resource-home':
+        return <ResourceHome onNavigate={handleSectionChange} />;
+      case 'mydebate-home':
+        return <MyDebateHome onNavigate={handleSectionChange} />;
       case 'ai-practice':
         return <AIPractice />;
       case 'global-practice':
@@ -76,7 +83,7 @@ export const Layout = () => {
       case 'feedback':
         return <Feedback />;
       default:
-        return <AIPractice />;
+        return <PracticeHome onNavigate={handleSectionChange} />;
     }
   };
 
