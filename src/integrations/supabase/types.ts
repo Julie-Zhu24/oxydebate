@@ -263,6 +263,7 @@ export type Database = {
           id: string
           likes_count: number | null
           post_type: string
+          quoted_post_id: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -277,6 +278,7 @@ export type Database = {
           id?: string
           likes_count?: number | null
           post_type: string
+          quoted_post_id?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -291,13 +293,22 @@ export type Database = {
           id?: string
           likes_count?: number | null
           post_type?: string
+          quoted_post_id?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "posts_quoted_post_id_fkey"
+            columns: ["quoted_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       practice_matches: {
         Row: {

@@ -22,9 +22,10 @@ interface Post {
   comments_count: number;
   created_at: string;
   user_id: string;
+  quoted_post_id?: string | null;
   profiles: {
     display_name: string | null;
-    username?: string | null; // Made optional for security - not fetched for public display
+    username?: string | null;
     avatar_url?: string | null;
   } | null;
 }
@@ -34,6 +35,7 @@ export const Posts = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [quotingPost, setQuotingPost] = useState<Post | null>(null);
   const [newPost, setNewPost] = useState<{
     title: string;
     content: string;
@@ -367,8 +369,9 @@ export const Posts = () => {
           post_type: newPost.post_type,
           audio_url: audioUrl,
           tags: newPost.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-          user_id: user.id
-        });
+          user_id: user.id,
+          quoted_post_id: quotingPost?.id || null,
+        } as any);
 
       if (error) throw error;
 
@@ -380,6 +383,7 @@ export const Posts = () => {
       setNewPost({ title: '', content: '', tags: '', post_type: 'text' });
       setShowCreateForm(false);
       setAudioBlob(null);
+      setQuotingPost(null);
       fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
@@ -784,6 +788,18 @@ export const Posts = () => {
               onChange={(e) => setNewPost(prev => ({ ...prev, tags: e.target.value }))}
             />
 
+            {quotingPost && (
+              <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-primary">Quoting post</span>
+                  <Button variant="ghost" size="sm" onClick={() => setQuotingPost(null)} className="h-6 px-2 text-xs">Remove</Button>
+                </div>
+                <p className="text-sm font-medium">{quotingPost.title}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{quotingPost.content}</p>
+                <p className="text-xs text-muted-foreground mt-1">— {quotingPost.profiles?.display_name || 'Anonymous'}</p>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <Button 
                 onClick={createPost} 
@@ -791,7 +807,7 @@ export const Posts = () => {
               >
                 {creating ? 'Creating...' : 'Create Post'}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+              <Button variant="outline" onClick={() => { setShowCreateForm(false); setQuotingPost(null); }}>
                 Cancel
               </Button>
             </div>
@@ -832,6 +848,19 @@ export const Posts = () => {
               
               <CardContent className="space-y-4">
                 <p className="text-foreground/90">{post.content}</p>
+
+                {(post as any).quoted_post_id && (() => {
+                  const quoted = posts.find(p => p.id === (post as any).quoted_post_id);
+                  if (!quoted) return null;
+                  return (
+                    <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
+                      <p className="text-xs font-medium text-primary mb-1">Quoted post</p>
+                      <p className="text-sm font-medium">{quoted.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{quoted.content}</p>
+                      <p className="text-xs text-muted-foreground mt-1">— {quoted.profiles?.display_name || 'Anonymous'}</p>
+                    </div>
+                  );
+                })()}
                 
                 {post.post_type === 'audio' && post.audio_url && (
                   <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg border border-secondary/30">
@@ -906,7 +935,11 @@ export const Posts = () => {
                     {post.comments_count}
                   </Button>
                   
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button variant="ghost" size="sm" className="gap-2" onClick={() => {
+                    setQuotingPost(post);
+                    setShowCreateForm(true);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}>
                     <Share2 className="w-4 h-4" />
                     Share
                   </Button>
